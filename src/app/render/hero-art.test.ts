@@ -51,3 +51,38 @@ it.each(['male', 'female'])('shows bare lower legs until boots are equipped (%s)
     // Unequipped bodies have bare skin, not a default shirt and trousers.
     expect(bare.some(([, , , , color]) => color === '#65818d' || color === '#5a626c')).toBe(false);
 });
+
+
+it('changes pixels and cache keys for underwear and helmet colors', async () => {
+  const {heroPixels} = await import('./hero-art');
+  const blue = heroAppearance('female', {}, defs);
+  const red = heroAppearance('female', {}, defs, 'red');
+  expect(red.key).not.toBe(blue.key);
+  expect(heroPixels(red)).not.toEqual(heroPixels(blue));
+  const equipment: Equipment = {helm:{uid:'helm',defId:'plate',count:1}};
+  const silver = heroAppearance('male', equipment, defs);
+  equipment.helm!.color = 'gold';
+  const gold = heroAppearance('male', equipment, defs);
+  expect(gold.key).not.toBe(silver.key);
+  expect(heroPixels(gold)).not.toEqual(heroPixels(silver));
+});
+
+it('draws distinct equipped silhouettes for the expansion weapons', async () => {
+  const {heroPixels} = await import('./hero-art');
+  const variants = [
+    ['Short Bow','bow'], ['Crossbow','crossbow'], ['Hand Cannon','hand-cannon'],
+    ['Whip','whip'], ['Salvaged Bone Club','bone-club'], ['Club','club'], ['Sword','sword'],
+  ] as const;
+  const pixels = variants.map(([name, weapon]) => {
+    const item:ItemDefRuntime={id:'test',name,kind:'weapon',slot:'weapon',stackable:false,consumable:false};
+    const appearance=heroAppearance('female',{weapon:{uid:'weapon',defId:'test',count:1}},{test:item});
+    expect(appearance.weapon).toBe(weapon);
+    const image=heroPixels(appearance);
+    for (const [x,y,w,h] of image) {
+      expect(x).toBeGreaterThanOrEqual(0);expect(y).toBeGreaterThanOrEqual(0);
+      expect(x+w).toBeLessThanOrEqual(32);expect(y+h).toBeLessThanOrEqual(32);
+    }
+    return JSON.stringify(image);
+  });
+  expect(new Set(pixels).size).toBe(variants.length);
+});

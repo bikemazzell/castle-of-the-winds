@@ -86,7 +86,7 @@ async function stepToward(page: CdpPage, tx: number, ty: number): Promise<WalkSt
         __cotw: {
           position: () => { x: number; y: number; level: number } | null;
           dispatch: (a: unknown) => void;
-          walkable: (x: number, y: number) => boolean;
+          walkable: (x: number, y: number, avoidNpcs?: boolean) => boolean;
           levelSize: () => number;
         };
       }).__cotw;
@@ -116,7 +116,7 @@ async function stepToward(page: CdpPage, tx: number, ty: number): Promise<WalkSt
           if (nx < 0 || ny < 0 || nx >= size || ny >= size) continue;
           const ni = ny * size + nx;
           if (prev[ni] !== -1) continue;
-          if (!c.walkable(nx, ny)) continue;
+          if (!c.walkable(nx, ny, true)) continue;
           prev[ni] = cur;
           queue.push(ni);
         }

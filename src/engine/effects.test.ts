@@ -524,3 +524,35 @@ it('Rune of Return rejects an occupied stair without moving the hero',()=>{
  expect(result.ok).toBe(false);expect(result.message).toMatch(/occupied/i);
  expect({x:w.player.x,y:w.player.y}).toEqual(before);
 });
+
+
+describe('oddity consumables', () => {
+  const def = (id: string) => ({id, name:id, kind:'misc', slot:null, stackable:true, consumable:true});
+  const use = (w: World, id: string) => spellEffectSystem().onUse(w, {uid:'test',defId:id,count:1}, def(id));
+  it('mead grants temporary courage without changing base attributes', () => {
+    const w = newWorld(); const strength = w.player.strength;
+    expect(use(w, 'x-mead')?.consumed).toBe(true);
+    expect(hasStatus(w.player, 'drunken')).toBe(true);
+    tickStatuses(w.player, 100);
+    expect(w.player.statuses).toEqual([]);
+    expect(w.player.strength).toBe(strength);
+  });
+  it('stimulant creates a crash and accounts for elapsed rest time', () => {
+    const w = newWorld(); use(w, 'x-sparkleaf');
+    tickStatuses(w.player, 8);
+    expect(hasStatus(w.player, 'crash')).toBe(true);
+    tickStatuses(w.player, 4);
+    expect(w.player.statuses).toEqual([]);
+    use(w, 'x-sparkleaf'); tickStatuses(w.player, 360);
+    expect(w.player.statuses).toEqual([]);
+  });
+  it('dyes clothing and refuses helmet polish without a worn helmet', () => {
+    const w = newWorld();
+    expect(use(w, 'x-dye-red')?.consumed).toBe(true);
+    expect(w.player.underwearColor).toBe('red');
+    expect(use(w, 'x-polish-gold')?.consumed).toBe(false);
+    w.inventory.equipment.helm = {uid:'helm',defId:'helm',count:1};
+    expect(use(w, 'x-polish-gold')?.consumed).toBe(true);
+    expect(w.inventory.equipment.helm.color).toBe('gold');
+  });
+});

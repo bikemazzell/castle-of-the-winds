@@ -74,7 +74,7 @@ export interface CotwHooks {
   perfReset(): void;
   dispatch(a: Action): void;
   appliedCount(): number;
-  walkable(x: number, y: number): boolean;
+  walkable(x: number, y: number, avoidNpcs?: boolean): boolean;
   levelSize(): number;
   stair(kind: 'down' | 'up'): { x: number; y: number } | null;
   boss(): { x: number; y: number; name: string; hp: number } | null;
@@ -130,12 +130,13 @@ export function createDevtools(ctx: DevtoolsContext): { hooks: CotwHooks; perf: 
     },
     /** Monotonic count of applied actions (e2e verifies dispatches actually ran). */
     appliedCount: (): number => ctx.getAppliedCount(),
-    /** Walkability of a tile on the CURRENT level (occupancy ignored). */
-    walkable: (x: number, y: number): boolean => {
+    /** Terrain oracle; campaign routes can exclude NPCs but still bump-attack monsters. */
+    walkable: (x: number, y: number, avoidNpcs = false): boolean => {
       const w = ctx.getWorld();
       const level = currentLevel(w);
       if (!w || !level || x < 0 || y < 0 || x >= LEVEL_SIZE || y >= LEVEL_SIZE) return false;
       const tile = level.tiles[idx(x, y)] ?? 0;
+      if (avoidNpcs && level.entities.get(level.occupancy[idx(x, y)]!)?.kind === 'npc') return false;
       return w.data.tiles[String(tile)]?.walkable ?? false;
     },
     levelSize: (): number => LEVEL_SIZE,

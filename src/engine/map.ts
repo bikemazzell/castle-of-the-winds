@@ -12,6 +12,24 @@ export const LEVEL_SIZE = 64;
 export const LEVEL_AREA = LEVEL_SIZE * LEVEL_SIZE; // 4096
 export const INTERLEAVED_BYTES = LEVEL_AREA * 3; // 12288
 
+export const NPC_ROLES = ['traveler', 'adventurer', 'peddler', 'witch', 'wizard', 'salvager', 'shopkeeper', 'ghost', 'critter'] as const;
+export type NpcRole = typeof NPC_ROLES[number];
+export interface NpcState {
+  role: NpcRole;
+  giftClaimed: boolean;
+  stock: string[];
+  shopId?: string;
+}
+export const PROP_KINDS = ['treasure', 'junk', 'bones', 'rune', 'mushrooms', 'rubble'] as const;
+export type PropKind = typeof PROP_KINDS[number];
+export interface DungeonProp {
+  id: string;
+  x: number;
+  y: number;
+  kind: PropKind;
+  exhausted: boolean;
+}
+
 export type EntityKind = 'monster' | 'npc' | 'player';
 
 /** Minimal entity record; richer stat blocks attach in M3/M4. */
@@ -24,6 +42,7 @@ export interface Entity {
   y: number;
   /** Combat state for kind === 'monster' (Task 4.1). */
   monster?: MonsterState;
+  npc?: NpcState;
 }
 
 export interface Level {
@@ -42,6 +61,8 @@ export interface Level {
   traps?: TrapState[];
   /** Secret doors (Task 4.3); undefined = not yet placed. */
   doors?: DoorState[];
+  encountersPopulated?: boolean;
+  props?: DungeonProp[];
 }
 
 /** Row-major cell index for (x, y); caller guarantees bounds. */

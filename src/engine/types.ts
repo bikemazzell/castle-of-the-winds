@@ -87,11 +87,15 @@ export type SpellsFile = TableEnvelope<SpellRecord>;
 
 import type { SpellDefRuntime } from './spells';
 
+export type UnderwearColor = 'blue' | 'red' | 'green' | 'purple';
+export type ItemColor = UnderwearColor | 'silver' | 'gold';
+
 export type Gender = 'male' | 'female';
 export type Difficulty = 'easy' | 'intermediate' | 'difficult' | 'expert';
 
 /** Timed magical states (Task 3.4). Poison magnitude doubles as tick accumulator. */
 export type StatusKind =
+  | 'drunken' | 'stimulated' | 'crash' | 'hallucination' | 'sedated'
   | 'poison'
   | 'shield'
   | 'resist_fire'
@@ -118,6 +122,7 @@ export interface Status {
 export interface Player {
   name: string;
   gender: Gender;
+  underwearColor?: UnderwearColor;
   x: number;
   y: number;
   level: number;
@@ -279,6 +284,7 @@ export type EquipSlot =
 
 /** Runtime item instance (stack of a definition + per-instance state). */
 export interface InventoryItem {
+  color?: ItemColor;
   /** Runtime-unique id (save-stable). */
   uid: string;
   /** items.json record id. */
@@ -305,6 +311,8 @@ export interface Inventory {
 
 /** Runtime view of an items.json record (adapter output, see engine/items.ts). */
 export interface ItemDefRuntime {
+  description?: string;
+  price?: number;
   id: string;
   name: string;
   kind: string;

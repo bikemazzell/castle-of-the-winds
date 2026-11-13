@@ -563,3 +563,16 @@ it('gives Ice Devils a deep demon tier instead of rat defaults',async()=>{
  expect(eligibleFor(1,roster)).toHaveLength(0);
  expect(eligibleFor(25,roster)).toHaveLength(1);
 });
+
+it('clamps a hit with damage penalties to zero without changing RNG consumption', () => {
+  const rng = new MSLCG(1);
+  const mirror = new MSLCG(1);
+  const result = resolveMelee({ ...FIGHTER, damage: { count: 1, sides: 3, bonus: -4 } }, { name: 'kobold', ac: -20, hp: 10 }, rng);
+  mirror.rand(20);
+  mirror.rand(3);
+  mirror.rand(PLAYER_HIT_MESSAGES.length);
+  expect(result.hit).toBe(true);
+  expect(result.damage).toBe(0);
+  expect(result.killed).toBe(false);
+  expect(rng.getState()).toBe(mirror.getState());
+});

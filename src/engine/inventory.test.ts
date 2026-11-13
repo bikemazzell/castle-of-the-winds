@@ -326,3 +326,15 @@ describe('autoArrange', () => {
     ]);
   });
 });
+
+it('preserves color when equipping one item from a stack', () => {
+  const inv = createInventory();
+  const hero = player();
+  const stack = pickup(inv, hero, 'i-iron-helmet', defs, 2);
+  stack.color = 'gold';
+  equip(inv, hero, stack.uid, defs);
+  expect(inv.equipment.helm?.color).toBe('gold');
+  expect(inv.equipment.helm?.count).toBe(1);
+  expect(inv.pack[0]?.color).toBe('gold');
+  expect(inv.pack[0]?.count).toBe(1);
+});

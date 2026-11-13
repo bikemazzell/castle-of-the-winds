@@ -89,3 +89,9 @@
 .victory-stats li > span { min-width: 0; overflow-wrap: anywhere; }
 .victory .story-buttons { width: min(100%, 30rem); }
 .victory .story-buttons button { max-width: 100%; white-space: normal; }
+
+/* Spell names are direct cast buttons; favorites remain separate. */
+.spellbook .spell-row { grid-template-columns: minmax(0, 1fr) auto; padding: 8px; gap: 8px; }
+.spellbook .spell-row .spell-cast { display: flex; align-items: center; gap: 10px; justify-self: stretch; width: 100%; text-align: left; padding: 10px; }
+.spellbook .spell-cast .spell-info { gap: 3px; }
+.spellbook .spell-reason { grid-column: 1 / -1; }

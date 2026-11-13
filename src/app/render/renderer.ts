@@ -33,7 +33,7 @@ export interface TileStyle {
 export interface SceneInput {
   /** Debug view only; never changes the engine's visibility planes. */
   revealMap?: boolean;
-  visual?: { seed:number;turn:number;now:number;reduced:boolean;environment?:Environment;buildings?:TownBuilding[];hero?:unknown;impacts?:readonly Impact[] };
+  visual?: { seed:number;turn:number;now:number;reduced:boolean;hallucinating?:boolean;environment?:Environment;buildings?:TownBuilding[];hero?:unknown;impacts?:readonly Impact[] };
   level: Level;
   /** 4096-byte seen/memory plane. */
   seen: Uint8Array;
@@ -63,6 +63,7 @@ export interface ActorMotion {
 
 /** What the controller wants highlighted on the map. */
 export interface RouteOverlay {
+  projectile?: { from: Point; to: Point; progress: number };
   feedback?: {cues:ActionCue[];progress:number};
   /** Cell pending touch confirmation (selection ring). */
   selected?: Point;
@@ -126,7 +127,7 @@ function actorOffset(scene: SceneInput, position: Point, motion?: ActorMotion): 
   if (progress === 1) return { x: 0, y: 0 };
   if (motion.kind === 'move' && motion.from) {
     const source=motion.source??motion.from;
-    if(Math.abs(source.x-position.x)+Math.abs(source.y-position.y)!==1 || !scene.seen[idx(source.x,source.y)] || !isVisible(scene.visible,source.x,source.y)) return {x:0,y:0};
+    if(Math.max(Math.abs(source.x-position.x),Math.abs(source.y-position.y))!==1 || !scene.seen[idx(source.x,source.y)] || !isVisible(scene.visible,source.x,source.y)) return {x:0,y:0};
     const displayed=movementPosition(position,motion);
     return {x:displayed.x-position.x,y:displayed.y-position.y};
   }
@@ -237,6 +238,21 @@ export function renderFrame(
       if (scene.visual) drawEnvironmentTile(ctx, {tileKind:scene.level.tiles[i]!,x:wx,y:wy,sx,sy,tile,
         seed:scene.visual.seed,level:scene.level,now:scene.visual.now,reduced:scene.visual.reduced,
         visible:!!scene.visible[i],environment:scene.visual.environment,buildings:scene.visual.buildings,turn:scene.visual.turn});
+      // Static discoveries remain in memory. Draw them before the same fog as terrain.
+      for (const prop of scene.level.props ?? []) {
+        if (prop.x !== wx || prop.y !== wy) continue;
+        const image = styles.sprites[`prop:${prop.kind}`];
+        if (image === undefined) continue;
+        const previousAlpha = ctx.globalAlpha;
+        ctx.globalAlpha = previousAlpha * (prop.exhausted ? 0.4 : 1);
+        ctx.drawImage(image, sx, sy, tile, tile);
+        ctx.globalAlpha = previousAlpha;
+      }
+      if (scene.visual?.hallucinating && scene.visible[i]) {
+        // A static tint stays gentle with reduced motion and leaves health bars readable.
+        ctx.fillStyle = 'rgba(154,115,212,0.08)';
+        ctx.fillRect(sx, sy, tile, tile);
+      }
       if (!scene.visible[i]) {
         ctx.fillStyle = `rgba(4,2,10,${memoryShade(scene.visible, wx, wy)})`;
         ctx.fillRect(sx, sy, tile, tile);
@@ -261,11 +277,24 @@ export function renderFrame(
   // Ground items stay seen-based: they are static knowledge.
   for (const entity of scene.entities ?? []) {
     if (scene.visible[idx(entity.x, entity.y)]) {
-      const sprite = styles.sprites[actorSpriteName(entity.name)] ?? styles.sprites['actor:unknown'];
+      const sprite = styles.sprites[entity.npc ? `npc:${entity.npc.role}` : actorSpriteName(entity.name)] ?? styles.sprites['actor:unknown'];
       if (sprite) {
         drawActor(ctx, camera, scene, entity, sprite, scene.animation?.entities?.get(entity.id),entity.id,creatureAppearance(entity.name).idle);
       } else {
         marker(ctx, camera, entity.x, entity.y, ENTITY_COLORS[entity.kind] ?? ENTITY_COLORS.monster!, 0.6);
+      }
+      if (entity.kind === 'monster' && entity.monster && entity.monster.hp > 0 && entity.monster.maxHp > 0) {
+        const offset = actorOffset(scene, entity, scene.animation?.entities?.get(entity.id));
+        const point = camera.worldToScreen(entity.x + offset.x, entity.y + offset.y);
+        const width = Math.round(tile * 0.625);
+        const height = Math.max(2, Math.floor(tile / 16));
+        const fraction = Math.max(0, Math.min(1, entity.monster.hp / entity.monster.maxHp));
+        const x = point.x + (tile - width) / 2;
+        const y = point.y - height - 1;
+        ctx.fillStyle = '#151a20';
+        ctx.fillRect(x - 1, y - 1, width + 2, height + 2);
+        ctx.fillStyle = fraction > 0.5 ? '#80b879' : fraction > 0.25 ? '#e5bd62' : '#d66b65';
+        ctx.fillRect(x, y, Math.round(width * fraction), height);
       }
     } else if (scene.sense && entity.kind === 'monster' && scene.seen[idx(entity.x, entity.y)]) {
       marker(ctx, camera, entity.x, entity.y, SENSE_MONSTER, 0.4);
@@ -341,6 +370,28 @@ export function renderFrame(
     drawActor(ctx, camera, scene, scene.player, hero, scene.animation?.player);
   } else {
     marker(ctx, camera, scene.player.x, scene.player.y, PLAYER_COLOR, 0.6);
+  }
+  const projectile = overlay?.projectile;
+  if (projectile && Number.isFinite(projectile.progress)) {
+    const progress = Math.max(0, Math.min(1, projectile.progress));
+    const dx = projectile.to.x - projectile.from.x, dy = projectile.to.y - projectile.from.y;
+    const distance = Math.hypot(dx, dy);
+    if (distance > 0) {
+      const size = Math.max(1, Math.round(tile / 16));
+      for (let piece = 2; piece >= 0; piece--) {
+        const x = projectile.from.x + 0.5 + dx * progress - dx / distance * piece * 0.07;
+        const y = projectile.from.y + 0.5 + dy * progress - dy / distance * piece * 0.07;
+        const wx = Math.floor(x), wy = Math.floor(y);
+        if (!isVisible(scene.visible, wx, wy) || !scene.seen[idx(wx, wy)]) continue;
+        const cell = camera.worldToScreen(wx, wy);
+        const point = camera.worldToScreen(x, y);
+        // Keep every pixel within its known tile, including at a fog boundary.
+        const sx = Math.max(cell.x, Math.min(cell.x + tile - size, Math.round(point.x - size / 2)));
+        const sy = Math.max(cell.y, Math.min(cell.y + tile - size, Math.round(point.y - size / 2)));
+        ctx.fillStyle = piece === 0 ? '#ffeab2' : '#c99d4e';
+        ctx.fillRect(sx, sy, size, size);
+      }
+    }
   }
   if (overlay?.feedback) drawActionFeedback(ctx,camera,overlay.feedback.cues,scene.visible,overlay.feedback.progress);
 }

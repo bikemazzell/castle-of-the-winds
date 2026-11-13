@@ -1,7 +1,9 @@
-import type { Equipment, ItemDefRuntime } from '../../engine/types';
+import type { Equipment, ItemDefRuntime, UnderwearColor, ItemColor } from '../../engine/types';
 import { PixelArt, pixelCanvas, type Pixel } from './pixel-art';
 export interface HeroAppearance {
     key: string;
+    underwearColor: UnderwearColor;
+    helmColor?: ItemColor;
     gender: string;
     weapon: string;
     armor: string;
@@ -15,10 +17,15 @@ export interface HeroAppearance {
     ring2: boolean;
     amulet: boolean;
 }
-export function heroAppearance(gender: string, equipment: Equipment, defs: Record<string, ItemDefRuntime>): HeroAppearance {
+export function heroAppearance(gender: string, equipment: Equipment, defs: Record<string, ItemDefRuntime>, underwearColor: UnderwearColor = 'blue'): HeroAppearance {
     const names = Object.fromEntries(Object.entries(equipment).map(([slot, item]) => [slot, defs[item.defId]?.name.toLowerCase() ?? '']));
     const weaponName = names.weapon ?? '';
     const weapon = !weaponName ? 'none'
+        : /crossbow/.test(weaponName) ? 'crossbow'
+        : /bow/.test(weaponName) ? 'bow'
+        : /hand cannon/.test(weaponName) ? 'hand-cannon'
+        : /whip/.test(weaponName) ? 'whip'
+        : /bone club/.test(weaponName) ? 'bone-club'
         : /quarterstaff/.test(weaponName) ? 'staff'
         : /morningstar/.test(weaponName) ? 'morningstar'
         : /flail/.test(weaponName) ? 'flail'
@@ -31,7 +38,7 @@ export function heroAppearance(gender: string, equipment: Equipment, defs: Recor
         : /broken/.test(weaponName) ? 'broken'
         : /two handed/.test(weaponName) ? 'greatsword' : 'sword';
     const armor = names.armor ? /plate/.test(names.armor) ? 'plate' : /chain|mail/.test(names.armor) ? 'mail' : 'leather' : 'none';
-    return { key: JSON.stringify([gender, names]), gender, weapon, armor, helm: !!names.helm, shield: !!names.shield, boots: !!names.boots, gauntlets: !!names.gauntlets, bracers: !!names.bracers, cloak: !!names.cloak, ring1: !!names.ring1, ring2: !!names.ring2, amulet: !!names.amulet };
+    return { key: JSON.stringify([gender, names, underwearColor, equipment.helm?.color]), underwearColor, helmColor: equipment.helm?.color, gender, weapon, armor, helm: !!names.helm, shield: !!names.shield, boots: !!names.boots, gauntlets: !!names.gauntlets, bracers: !!names.bracers, cloak: !!names.cloak, ring1: !!names.ring1, ring2: !!names.ring2, amulet: !!names.amulet };
 }
 export function heroPixels(d: HeroAppearance): Pixel[] {
     // Newly drawn 32px figures: small heads and long limbs, like early Windows RPG art.
@@ -39,7 +46,9 @@ export function heroPixels(d: HeroAppearance): Pixel[] {
     const female = d.gender === 'female';
     const ink = '#24252b', skin = '#e2ce96', light = '#fff0be', shade = '#9d875b';
     const hair = female ? '#b64728' : '#93662f', metal = '#b1bbc0', gold = '#d3b36b';
-    const blue = '#39469b';
+    const colors = {blue:'#39469b', red:'#ad3545', green:'#39834b', purple:'#894bac', silver:'#b1bbc0', gold:'#d3b36b'};
+    const blue = colors[d.underwearColor];
+    const clothLight = {blue:'#8d9ad3', red:'#e58b95', green:'#8ccb92', purple:'#c394df'}[d.underwearColor];
     if (d.cloak) {
         a.block(9, 10, 14, 19, '#564168');
         a.rect(10, 13, 2, 14, '#79618b');
@@ -79,13 +88,13 @@ export function heroPixels(d: HeroAppearance): Pixel[] {
     a.rect(12, 21, 9, 2, blue);
     a.rect(13, 23, 7, 1, blue);
     a.rect(15, 24, 3, 1, blue);
-    a.rect(12, 21, 9, 1, '#8d9ad3');
+    a.rect(12, 21, 9, 1, clothLight);
     if (female) {
         a.rect(12, 11, 1, 4, blue);
         a.rect(19, 11, 1, 4, blue);
         a.rect(11, 14, 10, 2, blue);
-        a.rect(12, 14, 3, 1, '#8d9ad3');
-        a.rect(17, 14, 3, 1, '#8d9ad3');
+        a.rect(12, 14, 3, 1, clothLight);
+        a.rect(17, 14, 3, 1, clothLight);
     } else {
         a.rect(13, 15, 2, 1, shade);
         a.rect(17, 15, 2, 1, shade);
@@ -136,7 +145,7 @@ export function heroPixels(d: HeroAppearance): Pixel[] {
         a.rect(19, 29, 5, 1, '#ad8c60');
     }
     if (d.helm) {
-        a.block(13, 2, 7, 3, metal);
+        a.block(13, 2, 7, 3, d.helmColor ? colors[d.helmColor] : metal);
         a.rect(16, 2, 1, 4, gold);
     }
     if (d.gauntlets) {
@@ -161,6 +170,52 @@ export function heroPixels(d: HeroAppearance): Pixel[] {
     if (d.weapon !== 'none') {
         a.rect(26, 17, 2, 7, '#8c6949');
         switch (d.weapon) {
+            case 'bow':
+                // Curved wooden limbs and a straight, taut string.
+                a.line(25, 4, 29, 10, ink, 2);
+                a.line(29, 10, 30, 20, ink, 2);
+                a.line(30, 20, 25, 29, ink, 2);
+                a.line(25, 5, 29, 11, '#b18b59');
+                a.line(30, 11, 30, 20, '#b18b59');
+                a.line(29, 21, 25, 28, '#b18b59');
+                a.line(25, 5, 25, 28, '#d8c7a0');
+                break;
+            case 'crossbow':
+                a.block(26, 10, 2, 16, '#956b48');
+                a.line(21, 13, 26, 9, ink, 2);
+                a.line(26, 9, 30, 13, ink, 2);
+                a.line(21, 13, 26, 10, metal);
+                a.line(26, 10, 30, 13, metal);
+                a.line(21, 14, 30, 14, '#d8c7a0');
+                a.rect(27, 7, 1, 10, '#e4dcc6');
+                a.rect(25, 23, 3, 3, '#76513a');
+                break;
+            case 'hand-cannon':
+                a.block(24, 8, 6, 11, '#67767d');
+                a.rect(25, 9, 1, 8, '#a3b2b5');
+                a.rect(28, 9, 2, 8, '#3c454e');
+                a.rect(24, 7, 6, 2, '#a3b2b5');
+                a.rect(25, 7, 4, 1, ink);
+                a.rect(25, 19, 3, 6, '#855d3e');
+                a.rect(24, 14, 6, 1, gold);
+                break;
+            case 'whip':
+                a.block(26, 13, 2, 8, '#7c4e31');
+                a.line(27, 21, 30, 24, '#bf9865');
+                a.line(30, 24, 29, 29, '#bf9865');
+                a.line(29, 29, 23, 30, '#bf9865');
+                a.line(23, 30, 23, 27, '#bf9865');
+                a.line(23, 27, 26, 26, '#bf9865');
+                a.rect(26, 15, 2, 1, '#d0ad76');
+                break;
+            case 'bone-club':
+                a.block(26, 10, 2, 13, '#d8c9a5');
+                a.block(23, 6, 4, 5, '#d8c9a5');
+                a.block(28, 6, 3, 5, '#d8c9a5');
+                a.rect(24, 7, 2, 1, '#fff0be');
+                a.rect(29, 7, 1, 1, '#fff0be');
+                a.rect(27, 11, 1, 5, '#a49578');
+                break;
             case 'staff':
                 a.block(26, 3, 2, 27, '#9c8059');
                 a.rect(26, 6, 2, 2, gold);

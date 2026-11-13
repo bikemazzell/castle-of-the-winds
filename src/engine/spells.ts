@@ -34,6 +34,7 @@ export type SpellEffectKind =
   | 'monster_ai'; // non-character spells (manual: cast by monsters only)
 
 export interface SpellDefRuntime {
+  description?: string;
   id: string;
   name: string;
   tier: number | null;

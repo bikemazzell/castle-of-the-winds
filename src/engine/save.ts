@@ -15,6 +15,7 @@ import {
   idx,
   validateOccupancy,
   type Entity,
+  type DungeonProp,
   type Level,
 } from './map';
 import { computeFov, updateSeen } from './fov';
@@ -106,6 +107,8 @@ export interface SerializedLevel {
   populated: boolean;
   /** Quest boss placed (Task 5.6). */
   bossPlaced?: boolean;
+  encountersPopulated?: boolean;
+  props?: DungeonProp[];
 }
 
 export interface SaveFile {
@@ -140,12 +143,14 @@ export function serializeLevelFor(level: Level, seen: Uint8Array): SerializedLev
     flagsB64: bytesToB64(level.flags),
     occupancyB64: bytesToB64(level.occupancy),
     seenB64: bytesToB64(seen),
-    entities: [...level.entities.values()],
+    entities: structuredClone([...level.entities.values()]),
     groundItems: [],
     traps: (level.traps ?? []).map((t) => ({ ...t })),
     doors: (level.doors ?? []).map((d) => ({ ...d })),
     populated: level.populated ?? false,
     bossPlaced: level.bossPlaced ?? false,
+    ...(level.encountersPopulated !== undefined ? { encountersPopulated: level.encountersPopulated } : {}),
+    ...(level.props ? { props: structuredClone(level.props) } : {}),
   };
 }
 
@@ -215,6 +220,7 @@ function validateDoors(doors: DoorState[], key: string): void {
 }
 
 const KNOWN_STATUSES = new Set([
+  'drunken', 'stimulated', 'crash', 'hallucination', 'sedated',
   'poison',
   'shield',
   'resist_fire',
@@ -312,6 +318,8 @@ export function deserializeGame(
     }
     level.populated = lv.populated ?? false;
     level.bossPlaced = lv.bossPlaced ?? false;
+    level.encountersPopulated = lv.encountersPopulated;
+    level.props = lv.props ? structuredClone(lv.props) : undefined;
     level.traps = lv.traps.map((t) => ({ ...t }));
     level.doors = lv.doors.map((d) => ({ ...d }));
     world.levels.set(lv.index, level);

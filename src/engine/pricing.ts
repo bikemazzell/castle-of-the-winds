@@ -10,6 +10,9 @@ import type { ItemDefRuntime } from './types';
 
 /** APPROX market (buy) price in copper pieces. */
 export function buyPrice(def: ItemDefRuntime): number {
+  if (def.price !== undefined && Number.isFinite(def.price) && def.price >= 0) return Math.round(def.price);
+  const expansionPrices: Record<string, number> = { 'x-bow': 600, 'x-arrow': 12, 'x-crossbow': 1200, 'x-bolt': 20, 'x-hand-cannon': 4800, 'x-cannonball': 90, 'x-rock': 6, 'x-bone': 4, 'x-bone-club': 180, 'x-whip': 450 };
+  if (expansionPrices[def.id] !== undefined) return expansionPrices[def.id]!;
   if (def.armorClass !== undefined) return (def.armorClass + 1) * 200;
   if (def.weaponClass !== undefined) return (def.weaponClass + 1) * 150;
   // misc: potions/scrolls/books flat, wearables mid-range

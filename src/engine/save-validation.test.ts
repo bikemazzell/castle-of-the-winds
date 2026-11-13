@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import { createCharacter } from './character';
 import { validateSave } from './save-validation';
-import { bytesToB64, serializeGame } from './save';
+import { bytesToB64, serializeGame, deserializeGame } from './save';
 import { createWorld, type WorldData } from './world';
 import type { Player } from './types';
 import type { SaveFile } from './save';
@@ -372,5 +372,95 @@ describe('save boundary validation (Task 2)', () => {
       }
     });
     expect(() => validateSave(journalOverflow, data)).toThrow(/journal.*large|collection limit/i);
+  });
+});
+
+
+it('rejects invalid cosmetic colors and unknown status kinds', () => {
+  const data = syntheticData(); const save = makeSave(data);
+  Object.assign(save.player, {underwearColor:'chartreuse'});
+  expect(() => validateSave(save, data)).toThrow(/underwearColor/);
+  delete save.player.underwearColor;
+  Object.assign(save.player, {statuses:[{kind:'immortal',remainingTurns:10}]});
+  expect(() => validateSave(save, data)).toThrow(/statuses/);
+});
+it('preserves valid colors and temporary statuses through save validation', () => {
+  const data = syntheticData(); const save = makeSave(data);
+  save.player.underwearColor = 'purple';
+  save.player.statuses = [{kind:'hallucination',remainingTurns:5}];
+  save.inventory.pack.push({uid:'color',defId:'i-potion',count:1,color:'gold'});
+  const loaded = validateSave(JSON.parse(JSON.stringify(save)), data).file;
+  expect(loaded.player.underwearColor).toBe('purple');
+  expect(loaded.player.statuses).toEqual(save.player.statuses);
+  expect(loaded.inventory.pack.at(-1)?.color).toBe('gold');
+  Object.assign(save.inventory.pack.at(-1)!, {color:'orange'});
+  expect(() => validateSave(save, data)).toThrow(/color/);
+});
+
+
+it('roundtrips oddity effects and colors through a live world', () => {
+  const data = syntheticData(); const save = makeSave(data);
+  save.player.underwearColor = 'green';
+  save.player.statuses = [{kind:'drunken',remainingTurns:7}];
+  save.inventory.pack.push({uid:'painted',defId:'i-potion',count:1,color:'silver'});
+  const loaded = deserializeGame(JSON.parse(JSON.stringify(save)), data);
+  const saved = serializeGame(loaded);
+  expect(saved.player.underwearColor).toBe('green');
+  expect(saved.player.statuses).toEqual(save.player.statuses);
+  expect(saved.inventory.pack.at(-1)?.color).toBe('silver');
+});
+
+describe('expansion encounter save validation', () => {
+  function encounterSave() {
+    const data = syntheticData();
+    const save = makeSave(data);
+    const level = save.levels['0']!;
+    const npc = { role: 'traveler' as const, giftClaimed: true, stock: ['i-potion'] };
+    level.entities = [{ id: 7, kind: 'npc', name: 'Traveler', x: 4, y: 3, npc }];
+    const occupancy = new Uint8Array(4096); occupancy[3 * 64 + 4] = 7;
+    level.occupancyB64 = bytesToB64(occupancy);
+    level.encountersPopulated = true;
+    level.props = [{ id: 'bones-1', kind: 'bones', x: 5, y: 3, exhausted: true }];
+    return { data, save, level, npc };
+  }
+  it('round trips claimed gifts, exhausted props, and population flags', () => {
+    const { data, save } = encounterSave();
+    const loaded = deserializeGame(save, data);
+    expect(loaded.levels.get(0)!.entities.get(7)!.npc?.giftClaimed).toBe(true);
+    expect(loaded.levels.get(0)!.props?.[0]?.exhausted).toBe(true);
+    expect(serializeGame(loaded).levels['0']!.encountersPopulated).toBe(true);
+  });
+  it.each([
+    { role: 'invalid' }, { giftClaimed: 'yes' }, { stock: ['missing'] },
+    { stock: 'i-potion' }, { stock: Array(65).fill('i-potion') }, { shopId: 42 }, { shopId: '' },
+  ])('rejects invalid NPC state %j', invalid => {
+    const { data, save, npc } = encounterSave();
+    Object.assign(npc, invalid);
+    expect(() => validateSave(save, data)).toThrow(/npc/);
+  });
+  it('rejects NPC state on a monster', () => {
+    const { data, save, level } = encounterSave();
+    level.entities[0]!.kind = 'monster';
+    expect(() => validateSave(save, data)).toThrow(/npc/);
+  });
+  it.each([{ id: '' }, { x: -1 }, { y: 64 }, { x: 1.5 }, { kind: 'invalid' }, { exhausted: 'yes' }])('rejects invalid prop %j', invalid => {
+    const { data, save, level } = encounterSave();
+    Object.assign(level.props![0]!, invalid);
+    expect(() => validateSave(save, data)).toThrow(/props/);
+  });
+  it('rejects duplicate prop IDs', () => {
+    const { data, save, level } = encounterSave();
+    level.props!.push({ ...level.props![0]!, x: 6 });
+    expect(() => validateSave(save, data)).toThrow(/props/);
+  });
+  it('rejects oversized prop collections', () => {
+    const { data, save, level } = encounterSave();
+    level.props = Array.from({ length: 65 }, (_, i) => ({ ...level.props![0]!, id: `p-${i}` }));
+    expect(() => validateSave(save, data)).toThrow(/props/);
+  });
+  it('rejects invalid population flags', () => {
+    const { data, save, level } = encounterSave();
+    Object.assign(level, { encountersPopulated: 1 });
+    expect(() => validateSave(save, data)).toThrow(/encountersPopulated/);
   });
 });

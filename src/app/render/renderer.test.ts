@@ -634,3 +634,76 @@ it('animates a visible attack and hit without moving the authoritative player', 
   renderFrame(still,camera,{level,seen:allSeen(),visible:allSeen(),player},styles);
   expect(still.images.find(i=>i.img===hero)).toEqual({img:hero,x:cell.x,y:cell.y,w:TILE,h:TILE});
 });
+
+describe('expansion map art', () => {
+  it('draws discoveries only on seen cells and dims exhausted or remembered discoveries', () => {
+    const level=fixtureLevel(); const camera=cameraFor({x:5,y:10},VP,TILE);
+    level.props=[
+      {id:'fresh',kind:'treasure',x:5,y:10,exhausted:false},
+      {id:'spent',kind:'junk',x:6,y:10,exhausted:true},
+      {id:'remembered',kind:'bones',x:7,y:10,exhausted:false},
+      {id:'unknown',kind:'rune',x:8,y:10,exhausted:false},
+    ];
+    const seen=allSeen(), visible=allSeen();seen[idx(8,10)]=0;visible[idx(7,10)]=0;visible[idx(8,10)]=0;
+    const images=Object.fromEntries(['treasure','junk','bones','rune'].map(kind=>[`prop:${kind}`,{kind}]));
+    const ctx=new FakeCtx(); const alphaAtDraw=new Map<unknown,number>();
+    const draw=ctx.drawImage.bind(ctx);
+    ctx.drawImage=(image,x,y,w,h)=>{alphaAtDraw.set(image,ctx.globalAlpha);draw(image,x,y,w,h);};
+    renderFrame(ctx,camera,{level,seen,visible,player:{x:5,y:10}},{...STYLES,sprites:{...STYLES.sprites,...images}});
+    expect(alphaAtDraw.has(images['prop:treasure'])).toBe(true);
+    expect(alphaAtDraw.get(images['prop:junk'])).toBeLessThan(alphaAtDraw.get(images['prop:treasure'])!);
+    expect(alphaAtDraw.has(images['prop:bones'])).toBe(true);
+    const remembered=camera.worldToScreen(7,10);
+    expect(ctx.fills.some(f=>f.x===remembered.x&&f.y===remembered.y&&f.color.startsWith('rgba(4,2,10,'))).toBe(true);
+    expect(alphaAtDraw.has(images['prop:rune'])).toBe(false);
+    expect(ctx.globalAlpha).toBe(1);
+  });
+  it('interpolates visible diagonal steps on both axes but never animates teleports', () => {
+    const hero={tag:'hero'};const level=fixtureLevel();const camera=cameraFor({x:5,y:10},VP,TILE);
+    const cell=camera.worldToScreen(5,10), styles={...STYLES,sprites:{...STYLES.sprites,'actor:hero':hero}};
+    const draw=(from:{x:number;y:number},progress:number)=>{
+      const ctx=new FakeCtx();renderFrame(ctx,camera,{level,seen:allSeen(),visible:allSeen(),player:{x:5,y:10},
+        animation:{player:{kind:'move',from,progress}}},styles);
+      return ctx.images.find(i=>i.img===hero)!;
+    };
+    const moving=draw({x:4,y:9},0.5);
+    expect(moving.x).toBeLessThan(cell.x);expect(moving.y).toBeLessThan(cell.y);
+    expect(moving.x).toBeGreaterThan(cell.x-TILE);expect(moving.y).toBeGreaterThan(cell.y-TILE);
+    expect(draw({x:4,y:9},1)).toMatchObject(cell);
+    expect(draw({x:3,y:8},0.5)).toMatchObject(cell);
+  });
+  it('adds a gentle hallucination tint only to visible known terrain', () => {
+    const level=fixtureLevel(),camera=cameraFor({x:5,y:10},VP,TILE);
+    const seen=allSeen(),visible=new Uint8Array(4096);visible[idx(5,10)]=1;
+    const tint='rgba(154,115,212,0.08)';
+    const draw=(hallucinating:boolean)=>{
+      const ctx=new FakeCtx();renderFrame(ctx,camera,{level,seen,visible,player:{x:5,y:10},
+        visual:{seed:42,turn:1,now:0,reduced:true,hallucinating}},STYLES);return ctx;
+    };
+    expect(draw(false).fills.filter(f=>f.color===tint)).toHaveLength(0);
+    const tinted=draw(true).fills.filter(f=>f.color===tint),cell=camera.worldToScreen(5,10);
+    expect(tinted).toEqual([{color:tint,x:cell.x,y:cell.y,w:TILE,h:TILE}]);
+    expect(visible[idx(6,10)]).toBe(0);
+  });
+});
+
+it('moves a gold projectile across visible cells and hides it behind fog', () => {
+  const level=fixtureLevel(), camera=cameraFor({x:5,y:10},VP,TILE);
+  const seen=allSeen(),visible=allSeen();
+  const draw=(progress:number)=>{
+    const ctx=new FakeCtx();renderFrame(ctx,camera,{level,seen,visible,player:{x:5,y:10},
+      overlay:{projectile:{from:{x:5,y:10},to:{x:9,y:10},progress}}},STYLES);
+    return ctx.fills.filter(f=>f.color==='#ffeab2'||f.color==='#c99d4e');
+  };
+  const first=draw(0), middle=draw(0.5), last=draw(1);
+  expect(first.length).toBeGreaterThan(0);expect(middle.length).toBeGreaterThan(0);
+  expect(middle[0]!.x).toBeGreaterThan(first[0]!.x);expect(last[0]!.x).toBeGreaterThan(middle[0]!.x);
+  visible[idx(7,10)]=0;
+  expect(draw(0.5)).toHaveLength(0);
+  // At a tile boundary, the trail must stay inside visible cells.
+  for(const pixel of draw(0.375)){
+    const hidden=camera.worldToScreen(7,10);
+    expect(pixel.x+pixel.w<=hidden.x || pixel.x>=hidden.x+TILE).toBe(true);
+  }
+  expect(draw(Number.NaN)).toHaveLength(0);
+});

@@ -1,3 +1,5 @@
+import { EXPANSION_WEAPONS } from './ranged';
+import { ODDITY_ITEMS, ODDITY_SPELLS } from './oddities';
 /**
  * Game bootstrap: adapters from extracted JSON data (src/data/*) to engine
  * runtime types. Pure data plumbing — no DOM.
@@ -46,6 +48,9 @@ export function loadWorldData(part: 1 | 2 = 1): WorldData {
   const existing = cache.get(part);
   if (existing) return existing;
   const data = part === 1 ? buildPart1() : buildPart2();
+  Object.assign(data.items, EXPANSION_WEAPONS, ODDITY_ITEMS);
+  Object.assign(data.spells, ODDITY_SPELLS);
+  Object.assign(data.items, spellScrollDefs(data.spells));
   cache.set(part, data);
   return data;
 }

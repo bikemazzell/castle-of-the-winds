@@ -14,7 +14,7 @@ function remainingPath(target:Point,motion:ActorMotion):Point[]{
 }
 export function movementPosition(target:Point,motion?:ActorMotion):Point{
  const source=motion?.source??motion?.from;
- if(source&&Math.abs(source.x-target.x)+Math.abs(source.y-target.y)!==1)return target;
+ if(source&&Math.max(Math.abs(source.x-target.x),Math.abs(source.y-target.y))!==1)return target;
  return motion?.kind==='move'?remainingPath(target,motion)[0]!:target;
 }
 export function continueMovement(previous:ActorMotion|undefined,progress:number,from:Point,to:Point):ActorMotion{

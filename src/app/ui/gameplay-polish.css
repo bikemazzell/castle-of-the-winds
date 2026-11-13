@@ -109,3 +109,16 @@
   .target-bar [data-field='target-spell'] { font-size: .8rem; }
   .target-bar [data-field='target-notice'] { grid-column: 1 / -1; }
 }
+
+
+/* Named spell shortcuts: compact dock cards and direct spellbook casting. */
+.spell-glyph { display: inline-grid; place-items: center; min-width: 1.5em; color: #f2d28b; font-size: 1.3em; line-height: 1; }
+.quickbar button { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 6px; text-align: left; max-width: 13rem; }
+.quickbar button[hidden] { display: none; }
+.quickbar .spell-glyph { grid-row: span 2; }
+.shortcut-name { font-size: .75rem; line-height: 1.15; }
+.shortcut-cost { color: #adc7f6; font-size: .7rem; line-height: 1.2; }
+@media (max-width: 600px) {
+  .quickbar { overflow-x: auto; padding-block: 2px; justify-content: flex-start; }
+  .quickbar button { flex: 0 0 auto; min-width: 7rem; max-width: 10rem; }
+}

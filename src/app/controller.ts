@@ -1,3 +1,6 @@
+import { rangedProfile } from '../engine/ranged';
+import { placeShopkeeper, PROP_NAMES } from '../engine/encounters';
+import { chatterLine, type ChatterContext } from '../engine/chatter';
 import { createIdleActions } from './idle';
 import { captureCombat } from '../engine/combat-feedback';
 import type { ActionCue } from './render/action-feedback';
@@ -181,7 +184,7 @@ export function createGameController(deps: ControllerDeps): GameController {
   let world: World | null = null;
   let dead = false;
   /** Spell targeting session (UI plan Phase 6): null when inactive. */
-  let targeting: { spellId: string; name: string; cost: number } | null = null;
+  let targeting: { spellId: string; name: string; cost: number; ranged?: boolean; itemUid?: string } | null = null;
   let targetCell: Cell | null = null;
   let targetNotice: string | null = null;
   let targetBarEl: HTMLElement | null = null;
@@ -192,7 +195,8 @@ export function createGameController(deps: ControllerDeps): GameController {
   const idleActions = createIdleActions();
   let idleTimer: number | undefined;
   let idleFocused = true;
-  const idleActivity = (): void => idleActions.activity((deps.now ?? Date.now)());
+  let lastUserActivity = (deps.now ?? Date.now)();
+  const idleActivity = (): void => { lastUserActivity = (deps.now ?? Date.now)(); idleActions.activity(lastUserActivity); };
   const idleBlur = (): void => { idleFocused = false; idleActivity(); };
   const idleFocus = (): void => { idleFocused = true; idleActivity(); };
   /** Viewport owns camera state + view controls (zoom/pan/pinch/wheel,
@@ -225,6 +229,7 @@ export function createGameController(deps: ControllerDeps): GameController {
   /** Working preferences (UI plan Phase 7): text size, map scale, motion, safe confirm. */
   let preferences = loadPreferences(prefsStorage);
   /** Brief cast feedback (UI plan Phase 6): affected cells + fade window. */
+  let projectile: {from:Cell;to:Cell;start:number}|null = null;
   let flash: { cells: { x: number; y: number }[]; start: number; durationMs: number } | null = null;
   /** Onboarding hints (UI plan Phase 7): shown once after a fresh game's story. */
   let hintsPending = false;
@@ -495,6 +500,7 @@ export function createGameController(deps: ControllerDeps): GameController {
     showingStory = false;
     closeAllModals();
     world = rebuilt;
+    populateShopkeepers();
     // The loaded world names its campaign: switch the saves manager so any
     // subsequent save writes into that part's key space (Task P6).
     saves = savesFor(rebuilt.data.part);
@@ -554,6 +560,12 @@ export function createGameController(deps: ControllerDeps): GameController {
     return `${name} · ${String(Math.floor(hour)).padStart(2,'0')}:${String(Math.floor((hour%1)*60)).padStart(2,'0')}`;
   };
 
+  const shortcutSpells = (): string[] => {
+    const learned = world?.player.knownSpells ?? [];
+    const favorites = favoriteSpells.filter(id => learned.includes(id));
+    return favorites.length ? favorites : [...new Set(learned)].slice(0, 6);
+  };
+
   const sync = (): void => {
     const w = world;
     if (!w || !hud) return;
@@ -568,7 +580,7 @@ export function createGameController(deps: ControllerDeps): GameController {
         level: w.player.level,
         place: levelName(w),
         statuses: [...w.player.statuses.map(s => s.kind.replaceAll('_', ' '))],
-        slots: favoriteSpells.map((id) => {
+        slots: shortcutSpells().map((id) => {
           const def = w.data.spells[id];
           if (!def) {
             return { spellId: id, label: id, cost: 0, castable: false, reason: 'unknown spell' };
@@ -684,12 +696,114 @@ export function createGameController(deps: ControllerDeps): GameController {
   const castFromFavoriteSlot = (index: number): void => {
     const w = world;
     if (!w || dead) return;
-    const id = favoriteSpells[index];
+    const id = shortcutSpells()[index];
     if (!id) return;
     const def = w.data.spells[id];
     if (!def) return;
     if (!w.player.knownSpells.includes(id)) return;
     beginCast(id);
+  };
+
+  const openFire = (): void => {
+    const w = world;
+    if (!w || dead) return;
+    const content = doc.createElement('div');
+    content.className = 'menu-list';
+    const weapon = w.inventory.equipment.weapon;
+    const choices = [...(weapon ? [weapon] : []), ...w.inventory.pack.filter(item => rangedProfile(item.defId)?.throwable)];
+    for (const item of choices) {
+      const profile = rangedProfile(item.defId);
+      const def = w.data.items[item.defId];
+      if (!profile || !def) continue;
+      const button = doc.createElement('button');
+      button.type = 'button';
+      button.dataset.ranged = item.uid;
+      const ammo = profile.ammoId ? w.inventory.pack.filter(i => i.defId === profile.ammoId).reduce((sum, i) => sum + i.count, 0) : item.count;
+      button.textContent = `${def.name} · range ${profile.range}${profile.ammoId || profile.throwable ? ` · ${ammo} remaining` : ''}`;
+      button.disabled = !!(profile.ammoId || profile.throwable) && ammo === 0;
+      button.addEventListener('click', () => { closeAllModals(); startTargeting('@ranged', def.name, item === weapon ? undefined : item.uid); });
+      content.appendChild(button);
+    }
+    if (!content.children.length) content.textContent = 'Equip a bow, crossbow, hand cannon, or whip, or carry rocks and bones to throw.';
+    openModal({ title: 'Fire / throw', content });
+  };
+
+  const nearbyEncounters = (): Array<{id:number|string;name:string;x:number;y:number}> => {
+    const w = world;
+    const level = w?.levels.get(w.current);
+    if (!w || !level) return [];
+    return [
+      ...[...level.entities.values()].filter(e => !!e.npc).map(e => ({id:e.id,name:e.name,x:e.x,y:e.y})),
+      ...(level.props ?? []).filter(p => !p.exhausted).map(p => ({id:p.id,name:PROP_NAMES[p.kind],x:p.x,y:p.y})),
+    ].filter(e => w.visible[idx(e.x,e.y)] && Math.max(Math.abs(e.x-w.player.x),Math.abs(e.y-w.player.y)) <= 1);
+  };
+
+  const interactWith = (id:number|string): void => {
+    const w = world;
+    if (!w) return;
+    const entity = typeof id === 'number' ? w.levels.get(w.current)?.entities.get(id) : undefined;
+    const turn = w.turn;
+    const previousEntry = w.log.at(-1);
+    closeAllModals();
+    dispatchAction({type:'INTERACT',target:id});
+    if (!entity?.npc || w.turn === turn || dead || openModalCount()) return;
+    const content = doc.createElement('div');
+    const words = doc.createElement('p');
+    words.textContent = w.log.slice(previousEntry ? w.log.indexOf(previousEntry)+1 : 0).map(entry => entry.text).join(' ');
+    content.appendChild(words);
+    const owner = entity.npc.shopId ? townFor(w.data.part).shops[entity.npc.shopId] : undefined;
+    const shop:ShopDef = owner ?? {id:`roamer-${entity.id}`,name:entity.name,kind:'general',stock:entity.npc.stock};
+    if (shop.stock.length || owner) {
+      const trade = doc.createElement('button');
+      trade.textContent = 'Trade';
+      trade.type = 'button';
+      trade.dataset.action = 'trade';
+      trade.addEventListener('click',()=>{closeAllModals();openMerchant(shop);});
+      content.appendChild(trade);
+    }
+    openModal({title:entity.name,content});
+  };
+
+  const openNearby = (): void => {
+    const content = doc.createElement('div');
+    content.className = 'menu-list';
+    for (const encounter of nearbyEncounters()) {
+      const button = doc.createElement('button');
+      button.type = 'button';
+      button.dataset.encounter = String(encounter.id);
+      button.textContent = encounter.name;
+      button.addEventListener('click',()=>interactWith(encounter.id));
+      content.appendChild(button);
+    }
+    if (!content.children.length) content.textContent = 'Move beside a traveler or an object to interact. Search can also uncover nearby salvage.';
+    openModal({title:'Nearby',content});
+  };
+
+  const populateShopkeepers = (): void => {
+    const w = world;
+    const townLevel = w?.levels.get(0);
+    if (!w || !townLevel || !w.data.items['x-rock']) return;
+    const town = townFor(w.data.part);
+    for (const building of town.buildings) {
+      const shop = town.shops[building.shopId];
+      if (shop) placeShopkeeper(w,townLevel,{shopId:shop.id,name:shop.name,...building.door,stock:shop.stock});
+    }
+  };
+
+  let lastChatter = -Infinity;
+  let lastChatterText = '';
+  let chatterSequence = 0;
+  const say = (context:ChatterContext,speaker?:string): string | null => {
+    const w = world;
+    const now = (deps.now ?? Date.now)();
+    if (!w || preferences.chatter === false || now-lastChatter < 12000) return null;
+    const line = chatterLine(w.worldSeed,w.turn+chatterSequence++,context,speaker ?? w.player.name);
+    if (line === lastChatterText) return null;
+    lastChatter = now;
+    lastChatterText = line;
+    w.log.push({turn:w.turn,text:line});
+    if (w.log.length > 500) w.log.splice(0,w.log.length-500);
+    return line;
   };
 
   const openRest = (): void => {
@@ -830,6 +944,8 @@ export function createGameController(deps: ControllerDeps): GameController {
     const content = doc.createElement('div');
     content.className = 'menu-list';
     const rows: Array<[string, string, () => void]> = [
+      ['Fire / throw (F)', 'fire', () => { closeAllModals(); openFire(); }],
+      ['Talk / inspect nearby (T)', 'interact', () => { closeAllModals(); openNearby(); }],
       ['Search · 1 turn (X)', 'search', () => { closeAllModals(); dispatchAction({ type: 'SEARCH' }); }],
       ['Rest · time passes', 'rest', () => { closeAllModals(); openRest(); }],
       ['Journal', 'journal', () => { closeAllModals(); openJournalDialog(world?.questState?.journal ?? []); }],
@@ -1001,6 +1117,7 @@ export function createGameController(deps: ControllerDeps): GameController {
     impacts.clear();
     environmentCache.clear();
     flash = null;
+    projectile = null;
     travelRunner?.stop(reason);
     endTargeting();
     selectedCell = null;
@@ -1046,13 +1163,13 @@ export function createGameController(deps: ControllerDeps): GameController {
     openModal({ title: 'Level Up', content });
   };
 
-  const startTargeting = (spellId: string, name: string): void => {
+  const startTargeting = (spellId: string, name: string, itemUid?: string): void => {
     const w = world;
     if (!w) return;
     endTargeting(); // safety: never two targeting sessions
     travelRunner?.stop('spell targeting');
     const def = w.data.spells[spellId];
-    targeting = { spellId, name, cost: def ? manaCostFor(def, w.player) : 0 };
+    targeting = { spellId, name, cost: def ? manaCostFor(def, w.player) : 0, ranged: spellId === '@ranged', itemUid };
     targetCell = null;
     targetNotice = null;
     buildTargetBar();
@@ -1064,10 +1181,10 @@ export function createGameController(deps: ControllerDeps): GameController {
   /** One deliberate confirmation: dispatch the cast and leave targeting. */
   const confirmTargeting = (): void => {
     if (!targeting || !targetCell) return;
-    const { spellId } = targeting;
+    const { spellId, ranged, itemUid } = targeting;
     const target = { x: targetCell.x, y: targetCell.y };
     endTargeting();
-    dispatchAction({ type: 'CAST', spellId, target });
+    dispatchAction(ranged ? { type: 'FIRE', target, uid: itemUid } : { type: 'CAST', spellId, target });
   };
 
   const endTargeting = (): void => {
@@ -1100,7 +1217,7 @@ export function createGameController(deps: ControllerDeps): GameController {
     const spell = doc.createElement('span');
     spell.dataset.field = 'target-spell';
     spell.className = 'target-spell-name';
-    spell.textContent = `${targeting.name} (${targeting.cost} mana)`;
+    spell.textContent = targeting.ranged ? targeting.name : `${targeting.name} (${targeting.cost} mana)`;
     const notice = doc.createElement('span');
     notice.dataset.field = 'target-notice';
     notice.className = 'target-notice';
@@ -1108,7 +1225,7 @@ export function createGameController(deps: ControllerDeps): GameController {
     const cast = doc.createElement('button');
     cast.type = 'button';
     cast.dataset.action = 'cast-target';
-    cast.textContent = 'Cast';
+    cast.textContent = targeting.ranged ? 'Fire' : 'Cast';
     cast.disabled = targetCell === null;
     cast.addEventListener('click', () => confirmTargeting());
     const cancel = doc.createElement('button');
@@ -1167,28 +1284,20 @@ export function createGameController(deps: ControllerDeps): GameController {
     }
     setTargetNotice(`Target: ${next.name}`);
     const castBtn = targetBarEl?.querySelector<HTMLButtonElement>('[data-action="cast-target"]');
-    if (castBtn) castBtn.disabled = false;
+    if (castBtn) { castBtn.disabled = false; castBtn.focus(); }
     renderer?.markDirty();
   };
 
-  /** Map taps while targeting: select, re-tap or Cast confirms (Phase 6). */
+  /** A visible target tap casts immediately; keyboard users can still cycle and confirm. */
   const handleTargetingTap = (cell: Cell): void => {
     const w = world;
     if (!w || !targeting) return;
     if (w.visible[idx(cell.x, cell.y)] !== 1) {
-      // Invalid target: explain, spend nothing (acceptance).
       setTargetNotice('You cannot target what you cannot see.');
       return;
     }
-    if (targetCell && targetCell.x === cell.x && targetCell.y === cell.y) {
-      confirmTargeting();
-      return;
-    }
     targetCell = { x: cell.x, y: cell.y };
-    setTargetNotice(null);
-    const castBtn = targetBarEl?.querySelector<HTMLButtonElement>('[data-action="cast-target"]');
-    if (castBtn) castBtn.disabled = false;
-    renderer?.markDirty();
+    confirmTargeting();
   };
 
   /** Ending screen once, after any queued cutscenes have played. */
@@ -1314,10 +1423,11 @@ export function createGameController(deps: ControllerDeps): GameController {
     const previousMotion=turnMotion;
     const previousProgress=previousMotion?((deps.now??Date.now)()-previousMotion.start)/TURN_MOTION_MS:1;
     const turnBefore=w.turn;
+    if (automatic) w.log.push({ turn: w.turn, text: action.type === 'REST' ? 'Auto rest: you settle down to recover.' : 'Auto search: you inspect your surroundings.' });
     const combat=captureCombat(w,()=>dispatch(w,action)).events;
     const cues:ActionCue[]=combat.filter(cue=>(cue.attacker.id===0||beforeEntities.has(cue.attacker.id))&&(cue.target.id===0||beforeEntities.has(cue.target.id))).map(cue=>({kind:'attack',from:{x:cue.attacker.x,y:cue.attacker.y},at:{x:cue.target.x,y:cue.target.y},hit:cue.hit}));
     if(cues.length&&!prefersReducedMotion())actionFeedback={start:(deps.now??Date.now)(),cues};
-    else if(w.turn!==turnBefore&&['SEARCH','USE','EQUIP','UNEQUIP','PICKUP'].includes(action.type))interactFeedback();
+    else if(w.turn!==turnBefore&&['SEARCH','USE','EQUIP','UNEQUIP','PICKUP','INTERACT'].includes(action.type))interactFeedback();
     if (currentBefore === w.current && preferences.blood !== false) impacts.add(damageImpacts(damageBefore,damageSnapshot(),(deps.now??Date.now)()));
     turnMotion = null;
     if (!prefersReducedMotion() && currentBefore === w.current) {
@@ -1354,9 +1464,16 @@ export function createGameController(deps: ControllerDeps): GameController {
         };
       } else {
         flash = null;
+        projectile = null;
       }
       renderer?.markDirty();
     }
+    if (action.type === 'FIRE' && w.turn !== turnBefore && !prefersReducedMotion()) {
+      projectile = {from:before,to:action.target,start:(deps.now??Date.now)()};
+      renderer?.markDirty();
+    }
+    if (combat.length) say('combat');
+    else if (action.type === 'SEARCH' && w.turn !== turnBefore) say('search');
     afterAction(action, levelBefore);
     // Urgent events only (UI plan §382): damage, death, level-up reach the
     // assertive region; routine movement never rewrites the live region.
@@ -1366,6 +1483,7 @@ export function createGameController(deps: ControllerDeps): GameController {
     if (w.current !== currentBefore) {
       impacts.clear();
       flash = null;
+      projectile = null;
       turnMotion = null;
       interactFeedback();
       autosaveNow(); // stairs transitions
@@ -1407,7 +1525,7 @@ export function createGameController(deps: ControllerDeps): GameController {
       occupied: (x, y) => {
         if ((w.visible[idx(x, y)] ?? 0) === 0) return false; // never hidden knowledge
         for (const e of level.entities.values()) {
-          if (e.kind === 'monster' && e.x === x && e.y === y) return true;
+          if (e.x === x && e.y === y) return true;
         }
         return false;
       },
@@ -1525,6 +1643,8 @@ export function createGameController(deps: ControllerDeps): GameController {
       return;
     }
     if (travelRunner?.state.active) travelRunner.stop('new map interaction');
+    const encounter = nearbyEncounters().find(e => e.x === cell.x && e.y === cell.y);
+    if (encounter) { interactWith(encounter.id); return; }
     if (cell.x === w.player.x && cell.y === w.player.y) {
       selectedCell = null; // own-cell tap clears the selection…
       previewSteps = null;
@@ -1647,6 +1767,14 @@ export function createGameController(deps: ControllerDeps): GameController {
       previewSteps = null;
       return;
     }
+    if (targeting) {
+      targetCell = cell && w.visible[idx(cell.x,cell.y)] ? {...cell} : null;
+      setTargetNotice(targetCell ? 'Click to cast here. Escape cancels.' : 'Choose a visible target.');
+      const button = targetBarEl?.querySelector<HTMLButtonElement>('[data-action=cast-target]');
+      if (button) button.disabled = !targetCell;
+      renderer?.markDirty();
+      return;
+    }
     // Don't clobber an explicit selection or a live travel queue.
     if (selectedCell || travelRunner?.state.active) {
       renderer?.markDirty();
@@ -1676,6 +1804,8 @@ export function createGameController(deps: ControllerDeps): GameController {
       case 'character': openCharacter(); break;
       case 'inventory': openInventory(); break;
       case 'cast': openSpellbook(); break;
+      case 'fire': openFire(); break;
+      case 'interact': openNearby(); break;
       case 'search': dispatchAction({ type: 'SEARCH' }); break;
       case 'rest': openRest(); break;
       case 'map': openMap(); break;
@@ -1688,7 +1818,7 @@ export function createGameController(deps: ControllerDeps): GameController {
         break;
       case 'pause': openPause(); break;
       case 'wait': dispatchAction({ type: 'WAIT' }); break;
-      case 'enter': interactHere(); break;
+      case 'enter': if (!interactHere() && nearbyEncounters().length) openNearby(); break;
       case 'log': openLog(); break;
       case 'actions': openActionsPanel(); break;
       default: break;
@@ -1784,6 +1914,7 @@ export function createGameController(deps: ControllerDeps): GameController {
       const elapsed = (deps.now ?? Date.now)() - flash.start;
       if (elapsed >= flash.durationMs) {
         flash = null;
+        projectile = null;
       } else {
         flashOverlay = { cells: flash.cells, alpha: 1 - elapsed / flash.durationMs };
         renderer?.markDirty();
@@ -1805,16 +1936,22 @@ export function createGameController(deps: ControllerDeps): GameController {
     if (!camera) return;
     let feedback: {cues:ActionCue[];progress:number}|undefined;
     if(actionFeedback){const progress=((deps.now??Date.now)()-actionFeedback.start)/280;if(progress>=1||prefersReducedMotion())actionFeedback=null;else {feedback={cues:actionFeedback.cues,progress};renderer?.markDirty();}}
-    const overlay = { ...(base ?? {}), flash: flashOverlay, feedback };
+    let flight: {from:Cell;to:Cell;progress:number}|undefined;
+    if (projectile) {
+      const progress = ((deps.now??Date.now)()-projectile.start)/FLASH_DURATION_MS;
+      if (progress >= 1 || prefersReducedMotion()) projectile = null;
+      else { flight={...projectile,progress}; renderer?.markDirty(); }
+    }
+    const overlay = { ...(base ?? {}), flash: flashOverlay, feedback, projectile:flight };
     renderFrame(ctx as unknown as Ctx2D, camera, {
       level,
       seen,
       visible: w.visible,
       player: hero,
       playerGender: w.player.gender,
-      visual: {seed:w.worldSeed,turn:w.turn,now:(deps.now??Date.now)(),reduced:prefersReducedMotion(),
+      visual: {seed:w.worldSeed,turn:w.turn,hallucinating:hasStatus(w.player,'hallucination'),now:(deps.now??Date.now)(),reduced:prefersReducedMotion(),
         environment:environmentCache.get(level,w.worldSeed),buildings:townFor(w.data.part).buildings,
-        hero:heroImage(heroAppearance(w.player.gender,w.inventory.equipment,w.data.items)),
+        hero:heroImage(heroAppearance(w.player.gender,w.inventory.equipment,w.data.items,w.player.underwearColor)),
         impacts:preferences.blood === false ? [] : impacts.all()},
       animation,
       revealMap: debugRevealMap,
@@ -1887,6 +2024,8 @@ export function createGameController(deps: ControllerDeps): GameController {
     victoryActive = false;
     showingStory = false;
     world = newWorld({ worldSeed: seed, player: init, data: bundleFor(titlePart) });
+    populateShopkeepers();
+    lastChatter = -Infinity;
     // The active saves manager follows the world's part (PART2-PLAN Task P6):
     // autosaves and manual saves land in the played campaign's key space.
     saves = savesFor(world.data.part);
@@ -1955,6 +2094,12 @@ export function createGameController(deps: ControllerDeps): GameController {
         return;
       }
       panel?.refresh({ inv: cur.inventory, player: cur.player, gold: cur.inventory.gold });
+      const line = say('barter', chatterSequence % 2 ? cur.player.name : shop.name);
+      if (line && panel) {
+        let banter = panel.el.querySelector<HTMLElement>('[data-field=merchant-banter]');
+        if (!banter) { banter=doc.createElement('p'); banter.dataset.field='merchant-banter'; panel.el.prepend(banter); }
+        banter.textContent = line;
+      }
       sync();
     };
     panel = createMerchantPanel({
@@ -2110,6 +2255,7 @@ export function createGameController(deps: ControllerDeps): GameController {
       renderer?.stop();
       turnMotion = null;
       flash = null;
+      projectile = null;
       if (travelRunner?.state.active) travelRunner.stop('the game lost focus');
       autosaveNow();
     } else { renderer?.markDirty(); renderer?.start(); }
@@ -2166,6 +2312,7 @@ export function createGameController(deps: ControllerDeps): GameController {
         const needsRest = !!w && (w.player.hp < w.player.maxHp || w.player.mana < w.player.maxMana);
         const action = idleActions.tick((deps.now ?? Date.now)(), preferences, blocked, needsRest);
         if (action) dispatchAction(action === 'REST' ? { type: 'REST', hours: 1 } : { type: 'SEARCH' }, true);
+        else if (!blocked && (deps.now ?? Date.now)()-lastUserActivity >= 15000 && say('idle')) sync();
       }, 250);
       mountTitle();
     },

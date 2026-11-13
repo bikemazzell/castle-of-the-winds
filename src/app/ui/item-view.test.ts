@@ -78,3 +78,10 @@ describe('item-view details (UI plan Phase 5)', () => {
     expect(weaponRows.find((r) => /weapon/i.test(r.label))?.current).toBeNull();
   });
 });
+
+it('shows item tradeoffs and per-instance color', () => {
+  const def = {...potion(), description:'Restore 4 HP; accuracy falls for 10 turns.'};
+  const el = itemDetails({def, item:{...invItem(def),color:'gold'}});
+  expect(el.textContent).toContain(def.description);
+  expect(el.textContent).toContain('Color: gold');
+});

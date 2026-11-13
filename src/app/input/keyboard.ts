@@ -33,6 +33,8 @@ const MOVES: Record<string, [number, number]> = {
 };
 
 const COMMANDS: Record<string, GameCommand> = {
+  f: 'fire',
+  t: 'interact',
   i: 'inventory',
   c: 'cast',
   x: 'search',

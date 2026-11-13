@@ -494,7 +494,7 @@ describe('world integration', () => {
     });
     const level = ensureLevel(world, 1);
     expect(level.populated).toBe(true);
-    expect(level.entities.size).toBe(spawnBudget(1));
+    expect([...level.entities.values()].filter(entity => entity.kind === 'monster')).toHaveLength(spawnBudget(1));
     expect(validateOccupancy(level).ok).toBe(true);
   });
 

@@ -1,3 +1,4 @@
+import { oddityCombatModifiers } from './oddities';
 // Inventory & equipment operations (Task 3.2).
 // Pure data ops over Inventory; effect hooks go through EffectSystem
 // (stubs until Task 3.3/3.4). Weight limits follow manual topic 294:
@@ -71,7 +72,7 @@ export function pickup(
     throw new InventoryError(`too heavy: would exceed carry limit of ${limit} g`);
   }
   if (def.stackable) {
-    const existing = inv.pack.find((i) => i.defId === defId);
+    const existing = inv.pack.find((i) => i.defId === defId && i.color === undefined);
     if (existing) {
       existing.count += count;
       return existing;
@@ -129,7 +130,7 @@ export function equip(
   let equippedItem: InventoryItem;
   if (item.count > 1) {
     item.count -= 1;
-    equippedItem = { uid: newUid(inv, item.defId), defId: item.defId, count: 1 };
+    equippedItem = { ...item, uid: newUid(inv, item.defId), count: 1 };
   } else {
     inv.pack = inv.pack.filter((i) => i.uid !== uid);
     equippedItem = item;
@@ -189,8 +190,8 @@ export function equipmentStats(
   return {
     armorValue,
     weaponClass,
-    toHit: toHitBonus(player.dexterity),
-    damage: damageBonus(player.strength) + weaponClass,
+    toHit: toHitBonus(player.dexterity) + oddityCombatModifiers(player).accuracy,
+    damage: damageBonus(player.strength) + weaponClass + oddityCombatModifiers(player).damage,
     weightGrams,
     ratedMax,
     hardLimit: hardCarryLimit(player.strength),

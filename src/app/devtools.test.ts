@@ -151,3 +151,16 @@ it('keeps the targeting fixture spell IDs valid in Part Two',async()=>{
  expect(w.player.knownSpells.every(id=>!!w.data.spells[id])).toBe(true);
  expect(()=>deserializeGame(serializeGame(w),w.data)).not.toThrow();
 });
+
+it('campaign routes can exclude neutral blockers while still approaching monsters', () => {
+  const world = makeWorld();
+  const level = world.levels.get(world.current)!;
+  level.tiles[4 + 3 * 64] = 1;
+  level.entities.set(230, { id: 230, kind: 'npc', name: 'Traveler', x: 4, y: 3, npc: { role: 'traveler', stock: [], giftClaimed: true } });
+  level.occupancy[4 + 3 * 64] = 230;
+  const hooks = createDevtools(makeCtx({ world })).hooks;
+  expect(hooks.walkable(4, 3)).toBe(true);
+  expect(hooks.walkable(4, 3, true)).toBe(false);
+  level.entities.set(230, { id: 230, kind: 'monster', name: 'Rat', x: 4, y: 3 });
+  expect(hooks.walkable(4, 3, true)).toBe(true);
+});

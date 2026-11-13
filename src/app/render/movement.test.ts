@@ -28,3 +28,10 @@ it('snaps teleports instead of moving the camera along an invisible path',()=>{
  const move=continueMovement(undefined,1,{x:5,y:5},{x:20,y:20});
  expect(movementPosition({x:20,y:20},{...move,progress:0.5})).toEqual({x:20,y:20});
 });
+it('interpolates diagonal steps and preserves continuity when another step starts',()=>{
+ const first=continueMovement(undefined,1,{x:5,y:5},{x:6,y:6});
+ expect(movementPosition({x:6,y:6},{...first,progress:0.5})).toEqual({x:5.5,y:5.5});
+ const next=continueMovement(first,0.5,{x:6,y:6},{x:7,y:7});
+ expect(movementPosition({x:7,y:7},{...next,progress:0})).toEqual({x:5.5,y:5.5});
+ expect(movementPosition({x:7,y:7},{...next,progress:1})).toEqual({x:7,y:7});
+});

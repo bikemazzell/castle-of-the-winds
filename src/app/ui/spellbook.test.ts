@@ -176,3 +176,33 @@ it('reveals the focused favorite after a deliberate reorder but not a passive re
     else Reflect.deleteProperty(HTMLElement.prototype, 'scrollIntoView');
   }
 });
+
+
+it('casts directly from the named spell button and keeps favorite clicks separate', () => {
+  const onCast = vi.fn();
+  const onToggleFavorite = vi.fn();
+  const panel = createSpellbookPanel({player:player(),spells:spells(),actions:{onCast,onToggleFavorite}});
+  const row = panel.el.querySelector('[data-spell="s323"]')!;
+  const cast = row.querySelector<HTMLButtonElement>('[data-action="cast"]')!;
+  expect(cast.textContent).toContain('SHIELD');
+  expect(cast.textContent).toContain('1 mana');
+  expect(cast.querySelector('.spell-glyph')?.getAttribute('aria-hidden')).toBe('true');
+  expect(cast.getAttribute('aria-label')).toMatch(/Cast SHIELD, 1 mana.*self/i);
+  cast.querySelector<HTMLElement>('.spell-title')!.click();
+  expect(onCast).toHaveBeenCalledExactlyOnceWith('s323');
+  row.querySelector<HTMLButtonElement>('[data-action="toggle-favorite"]')!.click();
+  expect(onCast).toHaveBeenCalledTimes(1);
+  expect(onToggleFavorite).toHaveBeenCalledWith('s323');
+});
+
+
+it('shows a custom spell description alongside the existing effect and target hints', () => {
+  const defs = spells();
+  defs.s323!.description = 'Borrow a little safety from tomorrow.';
+  const panel = createSpellbookPanel({player:player(),spells:defs});
+  const cast = panel.el.querySelector('[data-spell="s323"] [data-action="cast"]')!;
+  expect(cast.textContent).toContain('Borrow a little safety from tomorrow.');
+  expect(cast.textContent).toContain('Target: self');
+  expect(cast.textContent).toContain('Shields you');
+  expect(cast.textContent).toContain('1 mana');
+});

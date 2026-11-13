@@ -11,6 +11,7 @@
 import type { Player } from '../../engine/types';
 import type { SpellDefRuntime } from '../../engine/spells';
 import { canCast, manaCostFor } from '../../engine/spells';
+import { spellGlyph } from './hud';
 import { openModal, type ModalHandle } from './dialogs';
 
 export { closeAllModals } from './dialogs';
@@ -131,7 +132,7 @@ export function createSpellbookPanel(data: SpellbookData): SpellbookPanel {
       if (favorites.includes(def.id)) row.classList.add('favorite');
       row.dataset.spell = def.id;
 
-      const info = document.createElement('div');
+      const info = document.createElement('span');
       info.className = 'spell-info';
       const title = document.createElement('span');
       title.className = 'char-value spell-title';
@@ -142,6 +143,12 @@ export function createSpellbookPanel(data: SpellbookData): SpellbookPanel {
       const target = targetLabel(def);
       detail.textContent = `${target ? `${target} — ` : ''}${effectSummary(def)}`;
       info.append(title, detail);
+      if (def.description) {
+        const description = document.createElement('span');
+        description.className = 'spell-detail';
+        description.textContent = def.description;
+        info.append(description);
+      }
 
       const fav = document.createElement('button');
       fav.type = 'button';
@@ -159,16 +166,22 @@ export function createSpellbookPanel(data: SpellbookData): SpellbookPanel {
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.dataset.action = 'cast';
-      btn.textContent = 'Cast';
+      btn.className = 'spell-cast';
+      const glyph = document.createElement('span');
+      glyph.className = 'spell-glyph';
+      glyph.setAttribute('aria-hidden', 'true');
+      glyph.textContent = spellGlyph(def.name);
+      btn.append(glyph, info);
+      btn.setAttribute('aria-label', `Cast ${def.name}, ${cost} mana. ${target}. ${effectSummary(def)}${def.description ? `. ${def.description}` : ''}${check.ok ? '' : `. ${check.reason ?? 'cannot cast'}`}`);
       if (!check.ok) {
         btn.disabled = true;
         const reason = document.createElement('span');
         reason.className = 'spell-reason';
         reason.textContent = check.reason ?? 'cannot cast';
-        row.append(info, fav, btn, reason);
+        row.append(btn, fav, reason);
       } else {
         btn.addEventListener('click', () => d.actions?.onCast(def.id));
-        row.append(info, fav, btn);
+        row.append(btn, fav);
       }
       el.appendChild(row);
     }

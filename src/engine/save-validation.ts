@@ -16,7 +16,7 @@
  *   - pending story: at most 32 ids
  */
 
-import { LEVEL_AREA, LEVEL_SIZE, idx } from './map';
+import { LEVEL_AREA, LEVEL_SIZE, NPC_ROLES, PROP_KINDS, idx } from './map';
 import { b64ToBytes } from './save';
 import type { Entity, Level } from './map';
 import type { Inventory, Player, WorldData } from './types';
@@ -45,6 +45,9 @@ const EQUIP_SLOTS = new Set([
 ]);
 
 const ENTITY_KINDS = new Set(['monster', 'npc', 'player']);
+const UNDERWEAR_COLORS = new Set(['blue', 'red', 'green', 'purple']);
+const ITEM_COLORS = new Set([...UNDERWEAR_COLORS, 'silver', 'gold']);
+const STATUS_KINDS = new Set(['poison','shield','resist_fire','resist_cold','resist_lightning','light','levitation','detect_traps','detect_objects','detect_monsters','drunken','stimulated','crash','hallucination','sedated']);
 const GENDERS = new Set(['male', 'female']);
 const DIFFICULTIES = new Set(['easy', 'intermediate', 'difficult', 'expert']);
 
@@ -92,6 +95,7 @@ function validatePlayer(player: unknown, data: WorldData): Player {
   if (typeof name !== 'string' || name.length < 1 || name.length > 24) {
     fail('player.name', 'must be a string of 1-24 characters');
   }
+  if (player.underwearColor !== undefined && !UNDERWEAR_COLORS.has(player.underwearColor as string)) fail('player.underwearColor', 'must be a known color');
   if (!GENDERS.has(player.gender as string)) fail('player.gender', 'must be male or female');
   if (!DIFFICULTIES.has(player.difficulty as string)) {
     fail('player.difficulty', 'must be a known difficulty');
@@ -146,10 +150,14 @@ function validatePlayer(player: unknown, data: WorldData): Player {
   if (player.statuses.length > SAVE_LIMITS.statuses) {
     fail('player.statuses', `collection limit ${SAVE_LIMITS.statuses} exceeded`);
   }
+  for (const status of player.statuses) {
+    if (!isRecord(status) || !STATUS_KINDS.has(status.kind as string)) fail('player.statuses', 'unknown status kind');
+    if (!isNonNegInt(status.remainingTurns) || (status.magnitude !== undefined && !isNonNegInt(status.magnitude))) fail('player.statuses', 'invalid status duration or magnitude');
+  }
   return player as unknown as Player;
 }
 
-function validateEntityFields(entity: unknown): Entity {
+function validateEntityFields(entity: unknown, data: WorldData): Entity {
   if (!isRecord(entity)) fail('entities', 'entries must be objects');
   if (!Number.isInteger(entity.id) || (entity.id as number) < 1 || (entity.id as number) > 255) {
     fail('entity id', 'must be an integer in 1..255 (occupancy plane is one byte)');
@@ -164,6 +172,18 @@ function validateEntityFields(entity: unknown): Entity {
     const v = entity[key];
     if (!Number.isInteger(v) || (v as number) < 0 || (v as number) >= LEVEL_SIZE) {
       fail(`entity.${key}`, 'out of level bounds');
+    }
+  }
+  if (entity.npc !== undefined) {
+    const npc = entity.npc;
+    if (entity.kind !== 'npc' || !isRecord(npc)) fail('entity.npc', 'must belong to an NPC');
+    if (!(NPC_ROLES as readonly unknown[]).includes(npc.role)) fail('entity.npc.role', 'must be a known role');
+    if (typeof npc.giftClaimed !== 'boolean') fail('entity.npc.giftClaimed', 'must be a boolean');
+    if (!Array.isArray(npc.stock) || npc.stock.length > 64 || npc.stock.some(id => typeof id !== 'string' || !Object.hasOwn(data.items, id))) {
+      fail('entity.npc.stock', 'must contain at most 64 known item IDs');
+    }
+    if (npc.shopId !== undefined && (typeof npc.shopId !== 'string' || npc.shopId.length === 0 || npc.shopId.length > 128)) {
+      fail('entity.npc.shopId', 'must be a non-empty string of at most 128 characters');
     }
   }
   const monster = entity.monster;
@@ -281,6 +301,7 @@ function validateInventoryFields(inv: unknown, data: WorldData): Inventory {
         fail('inventory.pack', `${opt} must be a non-negative integer when present`);
       }
     }
+    if (item.color !== undefined && !ITEM_COLORS.has(item.color as string)) fail('inventory.color', 'must be a known color');
     if (uids.has(item.uid)) fail('inventory', `duplicate uid '${item.uid}'`);
     uids.add(item.uid);
     readUidSeq(item.uid);
@@ -296,6 +317,7 @@ function validateInventoryFields(inv: unknown, data: WorldData): Inventory {
     if (defs.length > 0 && !defs.includes(item.defId)) {
       fail('inventory.equipment', `unknown item definition '${String(item.defId)}'`);
     }
+    if (item.color !== undefined && !ITEM_COLORS.has(item.color as string)) fail('inventory.color', 'must be a known color');
     if (uids.has(item.uid)) fail('inventory', `duplicate uid '${item.uid}'`);
     uids.add(item.uid);
     readUidSeq(item.uid);
@@ -347,9 +369,31 @@ function validateLevelRecord(
     fail(`levels['${key}'].bossPlaced`, 'must be a boolean');
   }
 
+  if (lv.encountersPopulated !== undefined && typeof lv.encountersPopulated !== 'boolean') {
+    fail(`levels['${key}'].encountersPopulated`, 'must be a boolean');
+  }
+  if (lv.props !== undefined) {
+    if (!Array.isArray(lv.props) || lv.props.length > 64) fail('props', 'must contain at most 64 props');
+    const propIds = new Set<string>();
+    for (const prop of lv.props) {
+      if (!isRecord(prop)) fail('props', 'entries must be objects');
+      if (typeof prop.id !== 'string' || prop.id.length === 0 || prop.id.length > 128 || propIds.has(prop.id)) {
+        fail('props.id', 'must be unique and contain 1 to 128 characters');
+      }
+      propIds.add(prop.id);
+      if (!(PROP_KINDS as readonly unknown[]).includes(prop.kind)) fail('props.kind', 'must be a known kind');
+      if (typeof prop.exhausted !== 'boolean') fail('props.exhausted', 'must be a boolean');
+      for (const axis of ['x', 'y']) {
+        if (!Number.isInteger(prop[axis]) || (prop[axis] as number) < 0 || (prop[axis] as number) >= LEVEL_SIZE) {
+          fail(`props.${axis}`, 'out of level bounds');
+        }
+      }
+    }
+  }
+
   const seenIds = new Set<number>();
   for (const raw of lv.entities as unknown[]) {
-    const entity = validateEntityFields(raw);
+    const entity = validateEntityFields(raw, data);
     if (seenIds.has(entity.id)) {
       fail('entities', `duplicate entity id ${entity.id} in level ${key}`);
     }

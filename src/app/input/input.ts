@@ -9,6 +9,8 @@ import { createKeyboard } from './keyboard';
 import { createMapPointer, type MapPointer } from './pointer';
 
 export type GameCommand =
+  | 'fire'
+  | 'interact'
   | 'character'
   | 'inventory'
   | 'cast'

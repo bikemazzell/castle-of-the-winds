@@ -133,7 +133,7 @@ export interface ItemDetailsOptions {
 }
 
 /** Details pane: identity, weight, stats, and equipment comparison. */
-export function itemDetails({ def, equipped }: ItemDetailsOptions): HTMLElement {
+export function itemDetails({ def, item, equipped }: ItemDetailsOptions): HTMLElement {
   const el = document.createElement('div');
   el.className = 'item-details';
   el.dataset.field = 'item-details';
@@ -147,6 +147,16 @@ export function itemDetails({ def, equipped }: ItemDetailsOptions): HTMLElement 
   kindLine.className = 'item-kind';
   kindLine.textContent = def.kind === 'misc' ? 'Miscellaneous' : def.kind.charAt(0).toUpperCase() + def.kind.slice(1);
   el.appendChild(kindLine);
+  if (def.description) {
+    const description = document.createElement('p');
+    description.textContent = def.description;
+    el.appendChild(description);
+  }
+  if (item?.color) {
+    const color = document.createElement('p');
+    color.textContent = `Color: ${item.color}`;
+    el.appendChild(color);
+  }
 
   const weight = document.createElement('p');
   weight.textContent = `Weight: ${kg(def.weightGrams)}`;

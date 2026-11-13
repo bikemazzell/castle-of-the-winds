@@ -1,3 +1,5 @@
+import { fireWeapon } from './ranged';
+import { interactEncounter, populateEncounters, scavengeNearby, tickEncounters } from './encounters';
 /**
  * World + turn loop. The world object is mutable; dispatch() mutates and
  * returns it (documented deviation from a pure reducer — planes are typed
@@ -89,7 +91,9 @@ export type Action =
   | { type: 'EQUIP'; uid: string }
   | { type: 'UNEQUIP'; slot: EquipSlot }
   | { type: 'CAST'; spellId: string; target?: { x: number; y: number } }
+  | { type: 'FIRE'; target: { x: number; y: number }; uid?: string }
   | { type: 'SEARCH' }
+  | { type: 'INTERACT'; target: number | string }
   | { type: 'DISARM'; x?: number; y?: number }
   | { type: 'REST'; hours?: number }
   | { type: 'ENTER_TOWN' };
@@ -163,6 +167,7 @@ export function createWorld(init: CreateWorldInit): World {
   };
   world.levels.set(0, buildTownLevel(init.data));
   world.seen.set(0, new Uint8Array(LEVEL_AREA));
+  populateEncounters(world, world.levels.get(0)!);
   refreshFov(world);
   const questDef = init.data.quests?.[0];
   if (questDef) {
@@ -190,11 +195,13 @@ export function ensureLevel(world: World, index: number): Level {
         && existing.occupancy[i] === 0 && !existing.traps?.some(trap => idx(trap.x, trap.y) === i));
       if (cell >= 0) existing.tiles[cell] = TILE_STAIRS_UP;
     }
+    populateEncounters(world, existing);
     return existing;
   }
   if (index === 0) {
     const town = buildTownLevel(world.data);
     world.levels.set(0, town);
+    populateEncounters(world, town);
     return town;
   }
   const node = nodeFor(world, index);
@@ -208,6 +215,7 @@ export function ensureLevel(world: World, index: number): Level {
   placeQuestBoss(world, generated.level, index);
   placeTraps(world, generated.level, index);
   placeSecretDoors(world, generated.level, index);
+  populateEncounters(world, generated.level);
   return generated.level;
 }
 
@@ -242,6 +250,7 @@ function endTurn(world: World): void {
   world.systems.status.tick(world);
   tickInventory(world.inventory, 1); // light-source fuel burn-down
   world.systems.monsters.takeTurns(world);
+  tickEncounters(world);
   refreshFov(world);
 }
 
@@ -300,14 +309,30 @@ export function dispatch(world: World, action: Action): World {
       return world;
     }
 
+    case 'FIRE': {
+      const result = fireWeapon(world, action.target, action.uid);
+      if (!result.ok) { log(world, result.message); return world; }
+      endTurn(world);
+      return world;
+    }
+
     case 'WAIT': {
       endTurn(world);
+      return world;
+    }
+
+    case 'INTERACT': {
+      const result = interactEncounter(world, action.target);
+      for (const message of result.messages) log(world, message);
+      if (result.ok) endTurn(world);
       return world;
     }
 
     case 'SEARCH': {
       // Manual 'c': searches adjacent sites for traps and secret doors.
       searchAdjacent(world);
+      const result = scavengeNearby(world);
+      for (const message of result.messages) log(world, message);
       endTurn(world);
       return world;
     }

@@ -25,6 +25,7 @@ export interface GamePreferences {
   reduceMotion: ReduceMotionPref;
   safeConfirmation: boolean;
   blood?: boolean;
+  chatter?: boolean;
   idleRestSeconds?: number;
   idleSearchSeconds?: number;
 }
@@ -74,6 +75,7 @@ export function loadPreferences(storage: PreferenceStorage): GamePreferences {
     reduceMotion: clampReduceMotion(p.reduceMotion),
     safeConfirmation: p.safeConfirmation === true,
     blood: p.blood !== false,
+    ...(p.chatter === false ? { chatter: false } : {}),
     ...([5, 15, 30].includes(p.idleRestSeconds as number) ? { idleRestSeconds: p.idleRestSeconds as number } : {}),
     ...([5, 15, 30].includes(p.idleSearchSeconds as number) ? { idleSearchSeconds: p.idleSearchSeconds as number } : {}),
   };

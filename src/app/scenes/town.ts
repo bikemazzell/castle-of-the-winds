@@ -47,7 +47,11 @@ export function loadTownShops(part: Part = 1): TownShops {
   const shops: Record<string, ShopDef> = {};
   for (const shop of (shopsFile as unknown as ShopsFile).shops) {
     const scrolls = shop.kind === 'magic' ? Object.values(loadWorldData(part).items).filter(d => d.id.startsWith('i-scroll-of-')).map(d => d.id) : [];
-    shops[shop.id] = scrolls.length ? {...shop, stock:[...shop.stock.filter(id => id !== 'i-scroll-or-book'), ...scrolls]} : shop;
+    const extra = shop.kind === 'weapons' ? ['x-bow','x-arrow','x-crossbow','x-bolt','x-hand-cannon','x-cannonball','x-rock','x-bone-club','x-whip']
+      : shop.kind === 'alchemy' ? ['x-mead','x-spirits','x-sparkleaf','x-dreamcap','x-mellowroot']
+      : shop.kind === 'general' ? ['x-mead','x-rock','x-bone','x-dye-red','x-dye-green','x-dye-blue','x-dye-purple','x-polish-gold','x-polish-silver']
+      : shop.kind === 'armor' ? ['x-polish-gold','x-polish-silver'] : [];
+    shops[shop.id] = {...shop, stock: [...new Set([...shop.stock.filter(id => !scrolls.length || id !== 'i-scroll-or-book'), ...scrolls, ...extra])]};
   }
   const town = { buildings, shops };
   caches.set(part, town);

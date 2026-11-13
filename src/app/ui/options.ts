@@ -161,6 +161,14 @@ export function buildPreferencesContent(data: PreferencesDialogData): HTMLElemen
     el.append(row);
   }
 
+  const chatterRow = document.createElement('label');
+  chatterRow.className = 'option-row';
+  const chatter = document.createElement('input');
+  chatter.type = 'checkbox'; chatter.dataset.option = 'chatter'; chatter.checked = current.chatter !== false;
+  chatter.addEventListener('change', () => { current = { ...current, chatter: chatter.checked }; emit(); });
+  chatterRow.append(chatter, document.createTextNode('Character chatter and dungeon banter'));
+  el.append(chatterRow);
+
   const confirmRow = document.createElement('label');
   confirmRow.className = 'option-row';
   const box = document.createElement('input');

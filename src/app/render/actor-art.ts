@@ -1,3 +1,4 @@
+import { loadEncounterSprites } from './encounter-art';
 import monsters from '../../data/part1/monsters.json';
 import part2Monsters from '../../data/part2/monsters.json';
 import { creatureAppearance } from './creature-catalog';
@@ -7,7 +8,7 @@ export function actorSpriteName(name: string): string {
 }
 
 export function loadActorSprites(): Promise<Record<string, HTMLCanvasElement>> {
-  const sprites: Record<string, HTMLCanvasElement> = {};
+  const sprites: Record<string, HTMLCanvasElement> = loadEncounterSprites();
   for (const { name } of [...monsters.records, ...part2Monsters.records]) {
     const key = actorSpriteName(name);
     if (!sprites[key]) sprites[key] = pixelCanvas(creaturePixels(name));

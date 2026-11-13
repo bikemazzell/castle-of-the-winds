@@ -122,7 +122,7 @@ describe('part 1 character import (PART2-PLAN Task P7)', () => {
     const data2 = loadWorldData(2);
     const names2 = new Set(Object.values(data2.spells).map((def) => def.name));
     const part1 = Object.values(data1.spells);
-    expect(part1.length).toBe(34);
+    expect(part1.length).toBe(37);
     for (const def of part1) {
       expect(names2.has(def.name), def.name).toBe(true);
     }

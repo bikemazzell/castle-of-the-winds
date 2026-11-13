@@ -24,7 +24,7 @@ export interface HudState {
   gold: number;
   level: number;
   place: string;
-  /** Quick-slot favorites (UI plan Phase 6): exactly two, stable positions. */
+  /** Quick-slot favorites in stable slot order. */
   slots?: HudSlot[];
   statuses?: string[];
 }
@@ -49,6 +49,21 @@ const DOCK: ReadonlyArray<{ label: string; action: string }> = [
   { label: 'Wait', action: 'wait' },
   { label: 'Actions', action: 'actions' },
 ];
+
+/** Small text glyphs supplement spell names; names remain the accessible identity. */
+export function spellGlyph(name: string): string {
+  if (/heal|cure|neutralize/i.test(name)) return '+';
+  if (/shield|resist|ward/i.test(name)) return '◇';
+  if (/fire|flame|sunshine/i.test(name)) return '☀';
+  if (/cold|ice|frost/i.test(name)) return '❄';
+  if (/lightning|bolt/i.test(name)) return 'ϟ';
+  if (/sleep|bedtime/i.test(name)) return 'Zz';
+  if (/slow|paperwork/i.test(name)) return '⌛';
+  if (/light|detect|clairvoyance/i.test(name)) return '◉';
+  if (/teleport|return|door|levitat/i.test(name)) return '↗';
+  if (/arrow|missile|dart/i.test(name)) return '➶';
+  return '✦';
+}
 
 export function createHud(root: HTMLElement, actions: HudActions): Hud {
   const el = document.createElement('header');
@@ -156,7 +171,8 @@ export function createHud(root: HTMLElement, actions: HudActions): Hud {
   const quickbar = document.createElement('div');
   quickbar.className = 'quickbar';
   const slotEls: HTMLButtonElement[] = [];
-  for (let i = 0; i < 2; i++) {
+  const addSlot = (): void => {
+    const i = slotEls.length;
     const slot = document.createElement('button');
     slot.type = 'button';
     slot.dataset.action = `slot-${i}`;
@@ -165,7 +181,9 @@ export function createHud(root: HTMLElement, actions: HudActions): Hud {
     slot.addEventListener('click', () => actions.onAction(`slot-${i}`));
     quickbar.appendChild(slot);
     slotEls.push(slot);
-  }
+  };
+  addSlot();
+  addSlot();
 
   el.append(hero, right, announceEl, logPanel, dock, quickbar);
   root.appendChild(el);
@@ -220,6 +238,7 @@ export function createHud(root: HTMLElement, actions: HudActions): Hud {
       // Quick slots: render favorite spells (or stable empty markers).
       const slots = state.slots ?? [];
       quickbar.hidden = slots.length === 0;
+      while (slotEls.length < slots.length) addSlot();
       slotEls.forEach((slotEl, i) => {
         const s = slots[i];
         slotEl.hidden = !s;
@@ -230,9 +249,19 @@ export function createHud(root: HTMLElement, actions: HudActions): Hud {
           slotEl.removeAttribute('title');
           return;
         }
-        slotEl.textContent = s.castable ? `${s.label} (${s.cost} MP)` : `${s.label} · ${s.reason ?? 'unavailable'}`;
+        const glyph = document.createElement('span');
+        glyph.className = 'spell-glyph';
+        glyph.setAttribute('aria-hidden', 'true');
+        glyph.textContent = spellGlyph(s.label);
+        const name = document.createElement('span');
+        name.className = 'shortcut-name';
+        name.textContent = s.label;
+        const cost = document.createElement('span');
+        cost.className = 'shortcut-cost';
+        cost.textContent = `${s.cost} MP`;
+        slotEl.replaceChildren(glyph, name, cost);
         slotEl.disabled = !s.castable;
-        slotEl.setAttribute('aria-label', s.castable ? `Cast ${s.label}` : `${s.label} — ${s.reason ?? 'unavailable'}`);
+        slotEl.setAttribute('aria-label', s.castable ? `Cast ${s.label}, ${s.cost} mana` : `${s.label}, ${s.cost} mana — ${s.reason ?? 'unavailable'}`);
         if (s.reason) slotEl.setAttribute('title', s.reason);
         else slotEl.removeAttribute('title');
       });

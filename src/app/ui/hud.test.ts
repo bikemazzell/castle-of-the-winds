@@ -164,3 +164,26 @@ it('groups repeated events and expands without dispatching a game action', () =>
   expect(expand.getAttribute('aria-expanded')).toBe('true');
   expect(onAction).not.toHaveBeenCalled();
 });
+
+
+it('shows distinct spell glyphs, costs, and accessible labels for every supplied shortcut', () => {
+  const onAction = vi.fn();
+  const hud = createHud(document.body, actions(onAction));
+  hud.update({...state(), slots: [
+    {spellId:'shield',label:'SHIELD',cost:1,castable:true},
+    {spellId:'fire',label:'FIREBALL',cost:8,castable:false,reason:'not enough mana'},
+    {spellId:'heal',label:'HEAL MINOR WOUNDS',cost:2,castable:true},
+  ]}, []);
+  const buttons = [...document.querySelectorAll<HTMLButtonElement>('.quickbar button')];
+  expect(buttons).toHaveLength(3);
+  const glyphs = buttons.map(button => button.querySelector('.spell-glyph'));
+  expect(glyphs.every(glyph => glyph?.getAttribute('aria-hidden') === 'true')).toBe(true);
+  expect(new Set(glyphs.map(glyph => glyph?.textContent)).size).toBe(3);
+  expect(buttons[0]?.getAttribute('aria-label')).toBe('Cast SHIELD, 1 mana');
+  expect(buttons[1]?.textContent).toContain('8 MP');
+  expect(buttons[1]?.getAttribute('aria-label')).toContain('not enough mana');
+  buttons[2]?.click();
+  expect(onAction).toHaveBeenCalledWith('slot-2');
+  hud.update(state(), []);
+  expect(buttons.every(button => button.hidden && button.disabled)).toBe(true);
+});

@@ -271,6 +271,7 @@ export function resolveMelee(attacker: Combatant, defender: { name: string; ac: 
   }
   let damage = attacker.damage.bonus;
   for (let i = 0; i < attacker.damage.count; i++) damage += rng.rand(attacker.damage.sides) + 1;
+  damage = Math.max(0, damage);
   const killed = damage >= defender.hp;
   const pool = killed ? KILL_MESSAGES : PLAYER_HIT_MESSAGES;
   const message = pick(rng, pool);
@@ -325,15 +326,25 @@ export function lootFor(stats: MonsterCombatStats, rng: MSLCG): number {
   return 0;
 }
 
+/** Retained exhausted props enforce a per-level salvage limit across saves. */
+function leaveMonsterRemains(world: World, entity: Entity): void {
+  if (!world.data.items['x-bone']) return;
+  const level = world.levels.get(world.current)!;
+  level.props ??= [];
+  if (level.props.length >= 32) return;
+  const id = `remains-${level.index}-${level.props.length}`;
+  if (level.props.some(prop => prop.id === id)) return;
+  level.props.push({ id, x: entity.x, y: entity.y, kind: 'bones', exhausted: false });
+}
+
 /**
  * Player attacks `entityId` on the current level. Applies damage, removes
  * slain monsters (occupancy + records), awards xp/gold, logs the original
  * message. Mutates world.
  */
-export function playerAttack(world: World, entityId: number): MeleeResult {
+export function playerAttack(world: World, entityId: number, attacker: Combatant = playerCombatant(world)): MeleeResult {
   const level = world.levels.get(world.current)!;
   const entity = monsterOf(level, entityId);
-  const attacker = playerCombatant(world);
   // Attacking wakes sleeping monsters and alerts them (manual: Sleep Monster).
   entity.monster.sleepTurns = 0;
   entity.monster.alert = true;
@@ -345,6 +356,7 @@ export function playerAttack(world: World, entityId: number): MeleeResult {
       const stats = entity.monster.stats;
       level.occupancy[idx(entity.x, entity.y)] = 0;
       level.entities.delete(entityId);
+      leaveMonsterRemains(world, entity);
       gainExperience(world.player, stats.xp, world.data.xpThresholds ?? []);
       questEvent(world, { kind: 'monster-killed', name: entity.name });
       const gold = lootFor(stats, world.rng);
@@ -465,6 +477,7 @@ function hitMonsterWithSpell(world: World, def: SpellDefRuntime, entity: Entity,
     const level = world.levels.get(world.current)!;
     level.occupancy[idx(entity.x, entity.y)] = 0;
     level.entities.delete(entity.id);
+    leaveMonsterRemains(world, entity);
     gainExperience(world.player, monster.stats.xp, world.data.xpThresholds ?? []);
     questEvent(world, { kind: 'monster-killed', name: entity.name });
     const gold = lootFor(monster.stats, world.rng);

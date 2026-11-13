@@ -58,6 +58,9 @@ export function spellScrollDefs(spells: Record<string, SpellDefRuntime>): Record
   return Object.fromEntries(Object.values(spells).filter(spell => spell.effect !== 'monster_ai').map(spell => {
     // Names, unlike spell IDs, are stable across campaigns and character imports.
     const id = `i-scroll-of-${spell.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-$/, '')}`;
-    return [id, {id, name:`Scroll of ${spell.name}`, kind:'misc', weightGrams:50, slot:null, stackable:true, consumable:true}];
+    const description = spell.description
+      ? `Read to learn ${spell.name}. ${spell.description} Base casting cost: ${spell.baseMana} mana; your level adjusts the cost shown in the spellbook. Reading consumes the scroll.`
+      : undefined;
+    return [id, {id, name:`Scroll of ${spell.name}`, description, kind:'misc', weightGrams:50, slot:null, stackable:true, consumable:true}];
   }));
 }

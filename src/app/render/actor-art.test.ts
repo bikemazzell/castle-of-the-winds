@@ -46,3 +46,18 @@ it('uses the explicit unknown silhouette when a future roster sprite is not load
  },{tiles:{},sprites:{'actor:unknown':fallback}});
  expect(ctx.drawImage.mock.calls.some(call=>call[0]===fallback)).toBe(true);
 });
+
+it('draws a proportional health bar only for a currently visible enemy', () => {
+  const level = createEmptyLevel(1), visible = new Uint8Array(4096);
+  const enemy = { id: 1, kind: 'monster' as const, name: 'Giant Rat', x: 5, y: 5, monster: { hp: 4, maxHp: 8 } };
+  const bars: {color: string; width: number}[] = [];
+  const ctx = { fillStyle: '', globalAlpha: 1, fillRect(_x: number, _y: number, width: number) { if (this.fillStyle === '#e5bd62') bars.push({ color: this.fillStyle, width }); }, drawImage: vi.fn() };
+  const scene = {level, seen:new Uint8Array(4096).fill(1), visible, player:{x:6,y:6}, entities:[enemy]} as Parameters<typeof renderFrame>[2];
+  const camera = cameraFor(scene.player,{width:320,height:320},32);
+  renderFrame(ctx,camera,scene,{tiles:{},sprites:{}});
+  expect(bars).toHaveLength(0);
+  visible[idx(5,5)] = 1;
+  renderFrame(ctx,camera,scene,{tiles:{},sprites:{}});
+  expect(bars).toHaveLength(1);
+  expect(bars[0]!.width).toBe(10);
+});

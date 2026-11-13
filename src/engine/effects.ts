@@ -23,10 +23,13 @@ import { runeOfReturnTarget, teleportDestination } from './spells';
 import { questEvent } from './quests';
 import type { MonsterState } from './types';
 
+import { useOddity, oddityCombatModifiers } from './oddities';
+
 // ─── Statuses ───────────────────────────────────────────────────────────────
 
 /** APPROX durations (turns). Poison duration is set by its source. */
 export const STATUS_DURATIONS: Record<StatusKind, number> = {
+  drunken: 10, stimulated: 8, crash: 4, hallucination: 12, sedated: 12,
   poison: 100,
   shield: 400,
   resist_fire: 500,
@@ -75,6 +78,7 @@ export function removeStatus(player: Player, kind: StatusKind): boolean {
  * per POISON_PERIOD. Expired statuses are removed.
  */
 export function tickStatuses(player: Player, turns: number): void {
+  let crashRemaining = 0;
   for (const status of player.statuses) {
     // Age by the elapsed turns, but a status that expires mid-interval only
     // stays ACTIVE for its remaining turns (Task 7: e.g. a poison with 15
@@ -82,6 +86,9 @@ export function tickStatuses(player: Player, turns: number): void {
     // not 36).
     const activeTurns = Math.max(0, Math.min(turns, status.remainingTurns));
     status.remainingTurns -= turns;
+    if (status.kind === 'stimulated' && status.remainingTurns <= 0) {
+      crashRemaining = Math.max(crashRemaining, STATUS_DURATIONS.crash + status.remainingTurns);
+    }
     if (status.kind === 'poison') {
       const acc = (status.magnitude ?? 0) + activeTurns;
       const full = Math.floor(acc / POISON_PERIOD);
@@ -90,11 +97,12 @@ export function tickStatuses(player: Player, turns: number): void {
     }
   }
   player.statuses = player.statuses.filter((s) => s.remainingTurns > 0);
+  if (crashRemaining > 0) applyStatus(player, 'crash', crashRemaining);
 }
 
 /** Total AV bonus from shield statuses (equipmentStats folds this in). */
 export function statusArmorBonus(player: Player): number {
-  let bonus = 0;
+  let bonus = oddityCombatModifiers(player).armor;
   for (const s of player.statuses) {
     if (s.kind === 'shield') bonus += s.magnitude ?? 0;
   }
@@ -365,6 +373,8 @@ export function spellEffectSystem(): EffectSystem {
   return {
     onUse(world: unknown, item: InventoryItem, def: ItemDefRuntime) {
       const w = world as World;
+      const oddity = useOddity(w, def.id);
+      if (oddity) return oddity;
       const match = ITEM_SPELL_NAME.exec(def.name);
       if (!match) return null;
       const spell = spellByName(w, match[1]!);

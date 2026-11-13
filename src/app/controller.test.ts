@@ -420,7 +420,7 @@ describe('spells', () => {
     expect(world.player.statuses.some((s) => s.kind === 'light')).toBe(true);
   });
 
-  it('enemy spell: targeting bar selects + confirms and dispatches CAST with target', () => {
+  it('enemy spell: one target click casts immediately', () => {
     const c = bootstrap();
     const world = beginGame(c);
     world.player.knownSpells.push('s527'); // FIREBALL, enemy target
@@ -435,15 +435,11 @@ describe('spells', () => {
     expect(
       document.querySelector<HTMLButtonElement>('[data-action="cast-target"]')!.disabled,
     ).toBe(true);
-    // select a visible adjacent cell (tap once), then confirm (tap the same cell again)
+    // One visible target click completes the cast.
     const cell = { x: world.player.x + 1, y: world.player.y };
     const cotwTap = (window as unknown as {
       __cotw: { travel: { tap: (c2: { x: number; y: number }, t?: string) => void } };
     }).__cotw.travel.tap;
-    cotwTap(cell, 'touch');
-    expect(
-      document.querySelector<HTMLButtonElement>('[data-action="cast-target"]')!.disabled,
-    ).toBe(false);
     cotwTap(cell, 'touch');
     expect(document.querySelector('.target-bar')).toBeNull();
     expect(c.isInputEnabled()).toBe(true);
@@ -708,7 +704,7 @@ describe('spellbook favorites + quick slots (UI plan Phase 6)', () => {
       (document.querySelector(`[data-spell="${id}"] [data-action="toggle-favorite"]`) as HTMLButtonElement).click();
     }
     closeAllModals();
-    const slots = root.querySelectorAll('.quickbar [data-action^="slot-"]');
+    const slots = root.querySelectorAll('.quickbar [data-action^="slot-"]:not([hidden])');
     expect(slots.length).toBe(2);
     expect((slots[0] as HTMLElement).textContent).toContain('SHIELD');
     expect((slots[1] as HTMLElement).textContent).toContain('HEAL');
@@ -3206,9 +3202,11 @@ it('runs configured idle actions only during unobstructed active play', () => {
     world.player.hp = world.player.maxHp - 2;
     vi.advanceTimersByTime(5000);
     expect(world.player.hp).toBe(world.player.maxHp);
+    expect(world.log.some(entry => entry.text.startsWith('Auto rest:'))).toBe(true);
     const rested = world.turn;
     vi.advanceTimersByTime(5000);
     expect(world.turn).toBe(rested + 1);
+    expect(world.log.some(entry => entry.text.startsWith('Auto search:'))).toBe(true);
     window.dispatchEvent(new Event('blur'));
     vi.advanceTimersByTime(10000);
     expect(world.turn).toBe(rested + 1);
@@ -3236,4 +3234,74 @@ it('Sell All clears the pack at the quoted price and preserves equipped items', 
   expect(world.inventory.gold).toBe(before + expected);
   expect(world.inventory.pack).toHaveLength(0);
   expect(world.inventory.equipment.weapon?.uid).toBe('equipped-test');
+});
+
+it('offers a ranged weapon selector and enters aiming without spending a turn', () => {
+  const c = bootstrap();
+  const w = beginGame(c);
+  pickup(w.inventory, w.player, 'x-rock', w.data.items, 3);
+  root.querySelector<HTMLButtonElement>('[data-action="actions"]')!.click();
+  const fire = document.querySelector<HTMLButtonElement>('[data-action="fire"]');
+  expect(fire).not.toBeNull();
+  fire!.click();
+  const turn = w.turn;
+  document.querySelector<HTMLButtonElement>('[data-ranged]')!.click();
+  expect(document.querySelector('.target-bar')?.textContent).toContain('Rock');
+  expect(w.turn).toBe(turn);
+});
+
+it('offers nearby encounter interaction in the actions menu', () => {
+  const c = bootstrap();
+  const w = beginGame(c);
+  w.levels.get(w.current)!.entities.set(991, {id:991,kind:'npc',name:'Passing traveler',x:w.player.x+1,y:w.player.y,npc:{role:'traveler',giftClaimed:false,stock:[]}});
+  w.visible[idx(w.player.x+1,w.player.y)] = 1;
+  root.querySelector<HTMLButtonElement>('[data-action="actions"]')!.click();
+  const talk = document.querySelector<HTMLButtonElement>('[data-action="interact"]');
+  expect(talk).not.toBeNull();
+  talk!.click();
+  expect(document.querySelector('[data-encounter="991"]')?.textContent).toContain('Passing traveler');
+});
+
+it('shows learned spells as direct shortcuts before the player pins favorites', () => {
+  const c = bootstrap();
+  const w = beginGame(c);
+  w.player.knownSpells = ['s323'];
+  w.player.mana = w.player.maxMana = 20;
+  c.dispatchAction({type:'WAIT'});
+  const button = root.querySelector<HTMLButtonElement>('[data-action="slot-0"]')!;
+  expect(button.hidden).toBe(false);
+  expect(button.textContent).toMatch(/shield/i);
+  button.click();
+  expect(w.player.statuses.some(s => s.kind === 'shield')).toBe(true);
+  expect(document.querySelector('.modal-overlay')).toBeNull();
+});
+
+it('keeps conversation text when the log reaches its size limit', () => {
+  const c = bootstrap();
+  const w = beginGame(c);
+  const level = w.levels.get(w.current)!;
+  const x = w.player.x+1, y = w.player.y;
+  level.entities.clear();
+  level.tiles[idx(x,y)] = level.tiles[idx(w.player.x,w.player.y)]!;
+  level.entities.set(992,{id:992,kind:'npc',name:'Passing traveler',x,y,npc:{role:'traveler',giftClaimed:false,stock:[]}});
+  w.visible[idx(x,y)] = 1;
+  w.log = Array.from({length:500},()=>({turn:0,text:'Old entry'}));
+  const hooks = (window as unknown as {__cotw:{travel:{tap:(p:{x:number;y:number})=>void}}}).__cotw;
+  hooks.travel.tap({x,y});
+  expect(document.querySelector('.dialog-body')?.textContent).toContain('Passing traveler');
+});
+
+it('routes around a visible shopkeeper instead of walking into it', () => {
+  const c = bootstrap();
+  const w = beginGame(c);
+  w.player.x = 16; w.player.y = 20;
+  const level = w.levels.get(0)!;
+  level.entities.clear();
+  const floor = level.tiles[idx(16,20)]!;
+  for (let y=19;y<=21;y++) for(let x=16;x<=20;x++) level.tiles[idx(x,y)] = floor;
+  w.seen.get(0)!.fill(1); w.visible.fill(1);
+  level.entities.set(993,{id:993,kind:'npc',name:'Owner',x:17,y:20,npc:{role:'shopkeeper',giftClaimed:false,stock:[]}});
+  const hooks=(window as unknown as {__cotw:{travel:{hover:(p:{x:number;y:number})=>void;state:()=>{preview:number}}}}).__cotw;
+  hooks.travel.hover({x:19,y:20});
+  expect(hooks.travel.state().preview).toBe(5);
 });

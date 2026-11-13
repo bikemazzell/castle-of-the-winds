@@ -179,6 +179,9 @@ function validateEntityFields(entity: unknown, data: WorldData): Entity {
     if (entity.kind !== 'npc' || !isRecord(npc)) fail('entity.npc', 'must belong to an NPC');
     if (!(NPC_ROLES as readonly unknown[]).includes(npc.role)) fail('entity.npc.role', 'must be a known role');
     if (typeof npc.giftClaimed !== 'boolean') fail('entity.npc.giftClaimed', 'must be a boolean');
+    if (npc.talkCount !== undefined && (typeof npc.talkCount !== 'number' || !Number.isSafeInteger(npc.talkCount) || npc.talkCount < 0)) {
+      fail('entity.npc.talkCount', 'must be a non-negative safe integer');
+    }
     if (!Array.isArray(npc.stock) || npc.stock.length > 64 || npc.stock.some(id => typeof id !== 'string' || !Object.hasOwn(data.items, id))) {
       fail('entity.npc.stock', 'must contain at most 64 known item IDs');
     }

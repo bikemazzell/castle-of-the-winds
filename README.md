@@ -61,7 +61,13 @@ Sell All previews the pack contents and total price before confirmation. Equippe
 Dungeons contain treasure boxes, junk, bones, mushrooms, runes, rubble, ghosts, and harmless mice.
 Search reveals secret doors and collects nearby salvage. Each object gives its reward once.
 Travelers and shopkeepers have distinct dialogue. Some trade, wander, or offer a small gift.
+Wandering NPCs receive distinct names that persist across visits and saves. Fixed characters keep their established names.
+Interact uses the object under the hero first. Otherwise, choose a direction with movement keys or an adjacent map click.
+Press Escape to cancel. Short replies appear in the log, and merchants open their trade panels directly.
 Optional chatter covers combat, bargaining, searching, and idle time. Disable it in Settings.
+The game contains 1,260 speech lines, with separate cycles for each speaker and context.
+NPC conversations keep their place across saves. Lost health makes spoken lines increasingly garbled, and healing restores clear speech.
+Names, combat results, and action messages stay readable.
 
 Weapon shops sell bows, arrows, crossbows, bolts, hand cannons, cannonballs, bone clubs, and whips.
 Rocks and bones can be thrown. Ranged attacks require a visible enemy, a clear path, and matching ammunition.

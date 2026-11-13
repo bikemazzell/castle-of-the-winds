@@ -3,6 +3,8 @@ import { allocateEntityId, idx, PROP_KINDS, type DungeonProp, type Entity, type 
 import { MSLCG, levelGenSeed } from './rng';
 import { InventoryError, pickup } from './inventory';
 import { npcChatterLine } from './chatter';
+import { proceduralNpcName } from './npc-names';
+import { garbleSpeech } from './injured-speech';
 import type { World } from './world';
 export interface EncounterResult {
     ok: boolean;
@@ -11,16 +13,15 @@ export interface EncounterResult {
     shopId?: string;
 }
 const PEOPLE: {
-    name: string;
     role: NpcRole;
     stock: string[];
 }[] = [
-    { name: 'Mara the Wayfarer', role: 'traveler', stock: [] },
-    { name: 'Orrin Two-Boots', role: 'adventurer', stock: ['x-arrow', 'x-bolt'] },
-    { name: 'Pella Pocketmarket', role: 'peddler', stock: ['x-arrow', 'x-bolt', 'x-mead'] },
-    { name: 'Aunt Brindle', role: 'witch', stock: ['x-dreamcap', 'x-mellowroot'] },
-    { name: 'Master Fenn', role: 'wizard', stock: ['x-sparkleaf', 'i-scroll-of-mandatory-bedtime'] },
-    { name: 'Tavi Rustpicker', role: 'salvager', stock: ['x-rock', 'x-bone', 'x-bone-club'] },
+    { role: 'traveler', stock: [] },
+    { role: 'adventurer', stock: ['x-arrow', 'x-bolt'] },
+    { role: 'peddler', stock: ['x-arrow', 'x-bolt', 'x-mead'] },
+    { role: 'witch', stock: ['x-dreamcap', 'x-mellowroot'] },
+    { role: 'wizard', stock: ['x-sparkleaf', 'i-scroll-of-mandatory-bedtime'] },
+    { role: 'salvager', stock: ['x-rock', 'x-bone', 'x-bone-club'] },
 ];
 const near = (a: {
     x: number;
@@ -55,11 +56,11 @@ function safeCell(world: World, level: Level, x: number, y: number, town = false
         return false;
     return true;
 }
-function addNpc(world: World, level: Level, x: number, y: number, name: string, role: NpcRole, stock: string[], shopId?: string): Entity | null {
+function addNpc(world: World, level: Level, x: number, y: number, name: string | undefined, role: NpcRole, stock: string[], shopId?: string): Entity | null {
     const id = allocateEntityId(level);
     if (!id)
         return null;
-    const npc: Entity = { id, kind: 'npc', name, x, y, npc: { role, giftClaimed: false, stock: stock.filter(id => !!world.data.items[id]), ...(shopId ? { shopId } : {}) } };
+    const npc: Entity = { id, kind: 'npc', name: name ?? proceduralNpcName(world, level, id, role), x, y, npc: { role, giftClaimed: false, talkCount: 0, stock: stock.filter(id => !!world.data.items[id]), ...(shopId ? { shopId } : {}) } };
     level.entities.set(id, npc);
     level.occupancy[idx(x, y)] = id;
     return npc;
@@ -90,19 +91,19 @@ export function populateEncounters(world: World, level: Level): void {
         }
         return undefined;
     }
-    // A recurring traveler makes gifts easy to discover; the second role rotates by depth.
+    // Every floor has a distinct traveler; the second role rotates by depth.
     const people = [PEOPLE[0]!, town ? PEOPLE[2]! : PEOPLE[1 + ((level.index - 1) % 5)]!];
     for (const person of people) {
         const cell = takeCell();
         if (cell)
-            addNpc(world, level, cell.x, cell.y, person.name, person.role, person.stock);
+            addNpc(world, level, cell.x, cell.y, undefined, person.role, person.stock);
     }
     if (town)
         return;
-    for (const [name, role] of [['A Forgetful Ghost', 'ghost'], ['Cellar Mouse', 'critter']] as const) {
+    for (const role of ['ghost', 'critter'] as const) {
         const cell = takeCell();
         if (cell)
-            addNpc(world, level, cell.x, cell.y, name, role, []);
+            addNpc(world, level, cell.x, cell.y, undefined, role, []);
     }
     level.props ??= [];
     for (let n = 0; n < 24; n++) {
@@ -217,11 +218,14 @@ export function interactEncounter(world: World, target: number | string): Encoun
     if (!entity?.npc || !reachable(world, level, entity))
         return { ok: false, messages: ['There is nobody close enough to talk to.'] };
     const npc = entity.npc;
-    if (npc.role === 'ghost')
-        return { ok: true, messages: [`${entity.name}: I came down for a moment. Has it been long?`] };
-    if (npc.role === 'critter')
-        return { ok: true, messages: [`${entity.name} sniffs your boots and goes about its business.`] };
-    const messages = [npcChatterLine(world.worldSeed + entity.id, world.turn, npc.role, entity.name)];
+    const talkCount = npc.talkCount ?? 0;
+    const seed = levelGenSeed(world.worldSeed, level.index) + entity.id;
+    const line = npcChatterLine(seed, talkCount, npc.role, entity.name);
+    const messages = [entity.monster && npc.role !== 'critter'
+        ? garbleSpeech(line, entity.monster.hp, entity.monster.maxHp, seed, talkCount)
+        : line];
+    // Stay within the save format's exact integer range, even for a hand-edited save.
+    npc.talkCount = talkCount === Number.MAX_SAFE_INTEGER ? 0 : talkCount + 1;
     if (npc.role === 'traveler' && !npc.giftClaimed) {
         world.inventory.gold += 3;
         npc.giftClaimed = true;

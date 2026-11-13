@@ -1,4 +1,5 @@
 import { curseLine, type CurseContext } from '../engine/curses';
+import { garbleSpeech } from '../engine/injured-speech';
 import { createActionPalette, type ActionPalette } from './ui/action-palette';
 import { findDisarmTarget, trapAt } from '../engine/traps';
 import { TRAP_NAMES } from './render/trap-art';
@@ -58,6 +59,7 @@ import { openEditorDialog } from './editor/ui';
 import { serializeGame, deserializeGame, type SaveFile } from '../engine/save';
 import { ownFocus } from './ui/focus';
 import { createGameInput, type GameInput } from './input/input';
+import { mapKey } from './input/keyboard';
 import { createViewport, type Viewport } from './render/viewport';
 import { createRenderer, renderFrame, type Renderer, type RenderStyles, type Ctx2D, type ActorMotion, type SceneInput } from './render/renderer';
 import { buildTileStyles, loadSprites, spriteNamesFor, type TileDefLike } from './render/styles';
@@ -193,6 +195,7 @@ export function createGameController(deps: ControllerDeps): GameController {
   let targetCell: Cell | null = null;
   let targetNotice: string | null = null;
   let targetBarEl: HTMLElement | null = null;
+  let interactionBar: HTMLElement | null = null;
   let input: GameInput | null = null;
   let renderer: Renderer | null = null;
   /** Set by destroy(): late async callbacks (art loads) check this. */
@@ -202,7 +205,7 @@ export function createGameController(deps: ControllerDeps): GameController {
   let idleFocused = true;
   let lastUserActivity = (deps.now ?? Date.now)();
   const idleActivity = (): void => { lastUserActivity = (deps.now ?? Date.now)(); idleActions.activity(lastUserActivity); };
-  const idleBlur = (): void => { idleFocused = false; idleActivity(); };
+  const idleBlur = (): void => { idleFocused = false; idleActivity(); endInteraction(); };
   const idleFocus = (): void => { idleFocused = true; idleActivity(); };
   /** Viewport owns camera state + view controls (zoom/pan/pinch/wheel,
    *  map buttons, resize + dpr watching). Created in start() with the shell. */
@@ -505,6 +508,7 @@ export function createGameController(deps: ControllerDeps): GameController {
     showingStory = false;
     closeAllModals();
     world = rebuilt;
+    resetSpeech();
     populateShopkeepers();
     // The loaded world names its campaign: switch the saves manager so any
     // subsequent save writes into that part's key space (Task P6).
@@ -529,13 +533,14 @@ export function createGameController(deps: ControllerDeps): GameController {
    * on, derived — never stored separately. Input permission, HUD/keyboard
    * routing, and debug dispatches all consult this.
    */
-  type ControllerPhase = 'title' | 'dead' | 'story' | 'victory' | 'targeting' | 'playing';
+  type ControllerPhase = 'title' | 'dead' | 'story' | 'victory' | 'targeting' | 'interacting' | 'playing';
   const phase = (): ControllerPhase => {
     if (world === null) return 'title';
     if (dead) return 'dead';
     if (showingStory) return 'story';
     if (victoryActive) return 'victory';
     if (targeting) return 'targeting';
+    if (interactionBar) return 'interacting';
     return 'playing';
   };
 
@@ -551,7 +556,7 @@ export function createGameController(deps: ControllerDeps): GameController {
   const refreshGate = (): void => {
     const unobstructed = openModalCount() === 0;
     ambient.setActive(!!renderer && !destroyed && !doc.hidden && phase() === 'playing' && unobstructed && !prefersReducedMotion());
-    input?.setEnabled(phase() === 'playing' && unobstructed, (phase() === 'playing' || phase() === 'targeting') && unobstructed);
+    input?.setEnabled(phase() === 'playing' && unobstructed, (phase() === 'playing' || phase() === 'targeting' || phase() === 'interacting') && unobstructed);
   };
 
   const motionMedia = win?.matchMedia?.('(prefers-reduced-motion: reduce)');
@@ -729,7 +734,12 @@ export function createGameController(deps: ControllerDeps): GameController {
       button.addEventListener('click', () => { closeAllModals(); startTargeting('@ranged', def.name, item === weapon ? undefined : item.uid); });
       content.appendChild(button);
     }
-    if (!content.children.length) content.textContent = 'Equip a bow, crossbow, hand cannon, or whip, or carry rocks and bones to throw.';
+    if (!content.children.length) {
+      w.log.push({turn:w.turn,text:'Equip a bow, crossbow, hand cannon, or whip, or carry rocks and bones to throw.'});
+      if (w.log.length > 500) w.log.splice(0,w.log.length-500);
+      sync();
+      return;
+    }
     openModal({ title: 'Fire / throw', content });
   };
 
@@ -748,40 +758,77 @@ export function createGameController(deps: ControllerDeps): GameController {
     if (!w) return;
     const entity = typeof id === 'number' ? w.levels.get(w.current)?.entities.get(id) : undefined;
     const turn = w.turn;
-    const previousEntry = w.log.at(-1);
-    closeAllModals();
     dispatchAction({type:'INTERACT',target:id});
     if (!entity?.npc || w.turn === turn || dead || openModalCount()) return;
-    const content = doc.createElement('div');
-    const words = doc.createElement('p');
-    words.textContent = w.log.slice(previousEntry ? w.log.indexOf(previousEntry)+1 : 0).map(entry => entry.text).join(' ');
-    content.appendChild(words);
     const owner = entity.npc.shopId ? townFor(w.data.part).shops[entity.npc.shopId] : undefined;
     const shop:ShopDef = owner ?? {id:`roamer-${entity.id}`,name:entity.name,kind:'general',stock:entity.npc.stock};
-    if (shop.stock.length || owner) {
-      const trade = doc.createElement('button');
-      trade.textContent = 'Trade';
-      trade.type = 'button';
-      trade.dataset.action = 'trade';
-      trade.addEventListener('click',()=>{closeAllModals();openMerchant(shop);});
-      content.appendChild(trade);
-    }
-    openModal({title:entity.name,content});
+    if (shop.stock.length || owner) openMerchant(shop);
   };
 
-  const openNearby = (): void => {
-    const content = doc.createElement('div');
-    content.className = 'menu-list';
-    for (const encounter of nearbyEncounters()) {
-      const button = doc.createElement('button');
-      button.type = 'button';
-      button.dataset.encounter = String(encounter.id);
-      button.textContent = encounter.name;
-      button.addEventListener('click',()=>interactWith(encounter.id));
-      content.appendChild(button);
+  const endInteraction = (): void => {
+    win?.removeEventListener('keydown', onInteractionKey, true);
+    interactionBar?.remove();
+    interactionBar = null;
+    if (!targeting) shell.sheetEl.classList.remove('is-targeting');
+    refreshGate();
+    renderer?.markDirty();
+  };
+
+  const chooseInteraction = (cell: Cell): void => {
+    const w = world;
+    if (!w || !interactionBar || openModalCount() || dead || showingStory || victoryActive) return;
+    const adjacent = Math.max(Math.abs(cell.x-w.player.x),Math.abs(cell.y-w.player.y)) === 1;
+    const encounter = adjacent && nearbyEncounters().find(e => e.x === cell.x && e.y === cell.y);
+    if (!encounter) {
+      interactionBar.querySelector('[role="status"]')!.textContent = adjacent
+        ? 'Nothing to interact with there. Choose another direction, or Escape to cancel.'
+        : 'Choose an adjacent square, or Escape to cancel.';
+      return;
     }
-    if (!content.children.length) content.textContent = 'Move beside a traveler or an object to interact. Search can also uncover nearby salvage.';
-    openModal({title:'Nearby',content});
+    endInteraction();
+    interactWith(encounter.id);
+  };
+
+  const onInteractionKey = (e: KeyboardEvent): void => {
+    if (!interactionBar || openModalCount() || dead || showingStory || victoryActive) return;
+    if (e.ctrlKey || e.altKey || e.metaKey || (e.target as Element | null)?.closest?.('input, textarea, select, [contenteditable="true"]')) return;
+    const key = /^Numpad[1-9]$/.test(e.code) ? e.code.slice(-1) : e.key;
+    const action = mapKey(key);
+    if (e.key !== 'Escape' && action?.kind !== 'move') return;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    if (e.key === 'Escape') endInteraction();
+    else if (action?.kind === 'move' && world) chooseInteraction({x:world.player.x+action.dx,y:world.player.y+action.dy});
+  };
+
+  const beginInteraction = (): void => {
+    if (!world || dead) return;
+    actionPalette?.hide();
+    travelRunner?.stop('interaction');
+    endTargeting();
+    endInteraction();
+    if (interactHere()) return;
+    selectedCell = null;
+    previewSteps = null;
+    pendingAttack = null;
+    const bar = doc.createElement('div');
+    bar.className = 'target-bar interaction-bar';
+    const notice = doc.createElement('span');
+    notice.setAttribute('role','status');
+    notice.dataset.field = 'target-notice';
+    notice.textContent = 'Choose a direction with movement keys, or click an adjacent square. Escape cancels.';
+    const cancel = doc.createElement('button');
+    cancel.type = 'button';
+    cancel.dataset.action = 'cancel-interaction';
+    cancel.textContent = 'Cancel';
+    cancel.addEventListener('click', endInteraction);
+    bar.append(notice,cancel);
+    shell.sheetEl.appendChild(bar);
+    shell.sheetEl.classList.add('is-targeting');
+    interactionBar = bar;
+    win?.addEventListener('keydown', onInteractionKey, true);
+    refreshGate();
+    renderer?.markDirty();
   };
 
   const populateShopkeepers = (): void => {
@@ -797,14 +844,30 @@ export function createGameController(deps: ControllerDeps): GameController {
 
   let lastChatter = -Infinity;
   let lastChatterText = '';
-  let chatterSequence = 0;
+  const speechSequences = new Map<string, number>();
+  let merchantSpeakerSequence = 0;
+  const nextSpeechSequence = (category:'ordinary'|'curse',context:ChatterContext|CurseContext,speaker:string):number => {
+    const key=JSON.stringify([category,context,speaker]);
+    const sequence=speechSequences.get(key) ?? 0;
+    speechSequences.set(key,sequence+1);
+    return sequence;
+  };
+  const resetSpeech = ():void => {
+    speechSequences.clear();
+    merchantSpeakerSequence=0;
+    lastChatter=-Infinity;
+    lastChatterText='';
+  };
   const say = (context:ChatterContext,speaker?:string): string | null => {
     const w = world;
     const now = (deps.now ?? Date.now)();
     if (!w || now-lastChatter < 12000) return null;
     const foul=preferences.curses===true && (!speaker || speaker===w.player.name);
     if (!foul && preferences.chatter === false) return null;
-    const line = foul ? curseLine(w.worldSeed,chatterSequence++,context,w.player.name) : chatterLine(w.worldSeed,w.turn+chatterSequence++,context,speaker ?? w.player.name);
+    const voice=speaker ?? w.player.name;
+    const sequence=nextSpeechSequence(foul?'curse':'ordinary',context,voice);
+    const clear=foul ? curseLine(w.worldSeed,sequence,context,voice) : chatterLine(w.worldSeed,sequence,context,voice);
+    const line=voice===w.player.name ? garbleSpeech(clear,w.player.hp,w.player.maxHp,w.worldSeed,sequence) : clear;
     if (line === lastChatterText) return null;
     lastChatter = now;
     lastChatterText = line;
@@ -830,7 +893,10 @@ export function createGameController(deps: ControllerDeps): GameController {
     const seen = w.seen.get(w.current);
     const content = doc.createElement('div');
     if (!level || !seen) {
-      content.textContent = 'No map for this level yet.';
+      w.log.push({turn:w.turn,text:'No map for this level yet.'});
+      if (w.log.length > 500) w.log.splice(0,w.log.length-500);
+      sync();
+      return;
     } else {
       const mini = doc.createElement('canvas');
       mini.className = 'minimap';
@@ -1109,6 +1175,7 @@ export function createGameController(deps: ControllerDeps): GameController {
     flash = null;
     projectile = null;
     travelRunner?.stop(reason);
+    endInteraction();
     endTargeting();
     selectedCell = null;
     previewSteps = null;
@@ -1144,18 +1211,14 @@ export function createGameController(deps: ControllerDeps): GameController {
   const onLevelUp = (): void => {
     const w = world;
     if (!w) return;
-    const content = doc.createElement('div');
-    const head = doc.createElement('p');
-    head.textContent = `You have reached level ${w.player.level}!`;
-    const pools = doc.createElement('p');
-    pools.textContent = `HP ${w.player.hp}/${w.player.maxHp} — Mana ${w.player.mana}/${w.player.maxMana}`;
-    content.append(head, pools);
-    openModal({ title: 'Level Up', content });
+    w.log.push({turn:w.turn,text:`You reached level ${w.player.level}.`});
+    if (w.log.length > 500) w.log.splice(0,w.log.length-500);
   };
 
   const startTargeting = (spellId: string, name: string, itemUid?: string): void => {
     const w = world;
     if (!w) return;
+    endInteraction();
     endTargeting(); // safety: never two targeting sessions
     travelRunner?.stop('spell targeting');
     const def = w.data.spells[spellId];
@@ -1237,6 +1300,7 @@ export function createGameController(deps: ControllerDeps): GameController {
     if (e.key === 'Escape') {
       e.preventDefault();
       e.stopPropagation();
+      endInteraction();
       endTargeting();
       return;
     }
@@ -1359,6 +1423,8 @@ export function createGameController(deps: ControllerDeps): GameController {
     const w = world;
     const level = w?.levels.get(w.current);
     if (!w || dead || !level) return false;
+    const encounter = nearbyEncounters().find(e => e.x === w.player.x && e.y === w.player.y);
+    if (encounter) { interactWith(encounter.id); return true; }
     const t = level.tiles[idx(w.player.x, w.player.y)] ?? 0;
     if (t === TILE_STAIRS_DOWN) {
       dispatchAction({ type: 'DESCEND' });
@@ -1484,8 +1550,8 @@ export function createGameController(deps: ControllerDeps): GameController {
       const surprise=action.type==='MOVE' && [...w.levels.get(w.current)?.entities.values() ?? []].some(e=>e.monster && w.visible[idx(e.x,e.y)] && !beforeEntities.has(e.id));
       const context:CurseContext|undefined=trapSprung?'trap':killed?'victory':w.player.hp<hpBefore?'hurt':surprise?'surprised':combat.length?'combat':action.type==='SEARCH'?'search':undefined;
       if(context){
-        let line=curseLine(w.worldSeed,chatterSequence++,context,w.player.name);
-        if(line===lastChatterText)line=curseLine(w.worldSeed,chatterSequence++,context,w.player.name);
+        const sequence=nextSpeechSequence('curse',context,w.player.name);
+        const line=garbleSpeech(curseLine(w.worldSeed,sequence,context,w.player.name),w.player.hp,w.player.maxHp,w.worldSeed,sequence);
         w.log.push({turn:w.turn,text:line});
         if(w.log.length>500)w.log.splice(0,w.log.length-500);
         lastChatterText=line;lastChatter=(deps.now??Date.now)();cursed=true;
@@ -1656,6 +1722,7 @@ export function createGameController(deps: ControllerDeps): GameController {
   const handleMapTap = (cell: Cell, pointerType: string): void => {
     const w = world;
     if (!w || dead) return;
+    if (interactionBar) { chooseInteraction(cell); return; }
     if (targeting) {
       // Spell targeting owns map taps (UI plan Phase 6): select then confirm.
       handleTargetingTap(cell);
@@ -1780,6 +1847,7 @@ export function createGameController(deps: ControllerDeps): GameController {
    * click starts). Touch never hovers. No game-state changes, no turn.
    */
   const handleMapHover = (cell: Cell | null): void => {
+    if (interactionBar) return;
     hoverCell = cell;
     const w = world;
     if (!w || dead) {
@@ -1815,6 +1883,11 @@ export function createGameController(deps: ControllerDeps): GameController {
     // One permission rule for every command source (HUD buttons, keyboard,
     // test commands): only the playing phase with no panel open may act.
     if (openModalCount() > 0 || world === null || dead || showingStory || victoryActive) return;
+    if (interactionBar) {
+      if (cmd === 'menu' || cmd === 'pause') endInteraction();
+      if (cmd === 'pause') openPause();
+      return;
+    }
     if (cmd.startsWith('slot-')) {
       castFromFavoriteSlot(Number(cmd.slice('slot-'.length)));
       return;
@@ -1824,7 +1897,7 @@ export function createGameController(deps: ControllerDeps): GameController {
       case 'inventory': openInventory(); break;
       case 'cast': openSpellbook(); break;
       case 'fire': openFire(); break;
-      case 'interact': openNearby(); break;
+      case 'interact': beginInteraction(); break;
       case 'search': dispatchAction({ type: 'SEARCH' }); break;
       case 'rest': openRest(); break;
       case 'disarm': dispatchAction({type:'DISARM'}); break;
@@ -1840,7 +1913,7 @@ export function createGameController(deps: ControllerDeps): GameController {
         break;
       case 'pause': openPause(); break;
       case 'wait': dispatchAction({ type: 'WAIT' }); break;
-      case 'enter': if (!interactHere() && nearbyEncounters().length) openNearby(); break;
+      case 'enter': if (!interactHere() && nearbyEncounters().length) beginInteraction(); break;
       case 'log': openLog(); break;
       case 'actions': openActionsPanel(); break;
       default: break;
@@ -1956,7 +2029,7 @@ export function createGameController(deps: ControllerDeps): GameController {
         renderer?.markDirty();
       }
     }
-    const camera = camViewport?.frameCamera(targeting !== null, movementPosition(hero,animation?.player)) ?? null;
+    const camera = camViewport?.frameCamera(targeting !== null || interactionBar !== null, movementPosition(hero,animation?.player)) ?? null;
     if (!camera) return;
     let feedback: {cues:ActionCue[];progress:number}|undefined;
     if(actionFeedback){const progress=((deps.now??Date.now)()-actionFeedback.start)/280;if(progress>=1||prefersReducedMotion())actionFeedback=null;else {feedback={cues:actionFeedback.cues,progress};renderer?.markDirty();}}
@@ -2049,7 +2122,7 @@ export function createGameController(deps: ControllerDeps): GameController {
     showingStory = false;
     world = newWorld({ worldSeed: seed, player: init, data: bundleFor(titlePart) });
     populateShopkeepers();
-    lastChatter = -Infinity;
+    resetSpeech();
     // The active saves manager follows the world's part (PART2-PLAN Task P6):
     // autosaves and manual saves land in the played campaign's key space.
     saves = savesFor(world.data.part);
@@ -2118,8 +2191,9 @@ export function createGameController(deps: ControllerDeps): GameController {
         return;
       }
       panel?.refresh({ inv: cur.inventory, player: cur.player, gold: cur.inventory.gold });
-      const playerSpeaks = (preferences.curses === true && preferences.chatter === false) || chatterSequence % 2 === 1;
+      const playerSpeaks = (preferences.curses === true && preferences.chatter === false) || merchantSpeakerSequence % 2 === 1;
       const line = say('barter', playerSpeaks ? cur.player.name : shop.name);
+      if (line) merchantSpeakerSequence++;
       if (line && panel) {
         let banter = panel.el.querySelector<HTMLElement>('[data-field=merchant-banter]');
         if (!banter) { banter=doc.createElement('p'); banter.dataset.field='merchant-banter'; panel.el.prepend(banter); }
@@ -2267,6 +2341,7 @@ export function createGameController(deps: ControllerDeps): GameController {
   };
 
   const onModalEvent = (): void => {
+    if (openModalCount() > 0 && interactionBar) endInteraction();
     // A blocking panel interrupts travel immediately (UI plan Phase 2).
     if (openModalCount() > 0 && travelRunner?.state.active) travelRunner.stop('a panel opened');
     refreshGate();
@@ -2276,6 +2351,7 @@ export function createGameController(deps: ControllerDeps): GameController {
     idleActivity();
     refreshGate();
     if (doc.hidden) {
+      endInteraction();
       actionFeedback=null;
       renderer?.stop();
       turnMotion = null;
@@ -2320,7 +2396,7 @@ export function createGameController(deps: ControllerDeps): GameController {
         overlayEl: shell.sheetEl,
         getViewport: () => mapViewport(canvas.clientWidth, canvas.clientHeight),
         getHero: () => (world ? { x: world.player.x, y: world.player.y } : null),
-        isFrozen: () => targeting !== null,
+        isFrozen: () => targeting !== null || interactionBar !== null,
         now: () => (deps.now ?? Date.now)(),
         dpr: () => win?.devicePixelRatio ?? 1,
         onChange: () => {
@@ -2392,6 +2468,7 @@ export function createGameController(deps: ControllerDeps): GameController {
       input = null;
       renderer?.stop();
       renderer = null;
+      endInteraction();
       endTargeting();
       removeHint();
       hintsPending = false;

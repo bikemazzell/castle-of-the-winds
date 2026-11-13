@@ -17,6 +17,8 @@ export type NpcRole = typeof NPC_ROLES[number];
 export interface NpcState {
   role: NpcRole;
   giftClaimed: boolean;
+  /** Successful conversations; absent in older saves. */
+  talkCount?: number;
   stock: string[];
   shopId?: string;
 }

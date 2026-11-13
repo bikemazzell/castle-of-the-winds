@@ -139,3 +139,7 @@
 @media (max-height: 500px) and (min-width: 540px) {
   .action-palette { max-height: 40dvh; }
 }
+
+/* Direction selection shares the spell bar without a blocking dialog. */
+.interaction-bar { grid-template-columns: minmax(0, 1fr) auto; }
+.interaction-bar [data-field="target-notice"] { grid-column: auto; }

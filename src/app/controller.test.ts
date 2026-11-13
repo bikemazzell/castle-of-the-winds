@@ -13,6 +13,9 @@ import type { World } from '../engine/world';
 import type { WorldData } from '../engine/types';
 import { createSaveManager, type SaveManager, type SaveStorage } from './saves/manager';
 import type { PreferenceStorage } from './prefs';
+import { chatterLine } from '../engine/chatter';
+import { curseLine } from '../engine/curses';
+import { garbleSpeech } from '../engine/injured-speech';
 import { MSLCG } from '../engine/rng';
 import type { Entity } from '../engine/map';
 
@@ -3257,7 +3260,8 @@ it('offers nearby encounter interaction in the actions menu', () => {
   const talk = document.querySelector<HTMLButtonElement>('[data-action="interact"]');
   expect(talk).not.toBeNull();
   talk!.click();
-  expect(document.querySelector('[data-encounter="991"]')?.textContent).toContain('Passing traveler');
+  expect(document.querySelector('.interaction-bar')?.textContent).toContain('direction');
+  expect(document.querySelector('.modal-overlay')).toBeNull();
 });
 
 it('shows learned spells as direct shortcuts before the player pins favorites', () => {
@@ -3286,7 +3290,8 @@ it('keeps conversation text when the log reaches its size limit', () => {
   w.log = Array.from({length:500},()=>({turn:0,text:'Old entry'}));
   const hooks = (window as unknown as {__cotw:{travel:{tap:(p:{x:number;y:number})=>void}}}).__cotw;
   hooks.travel.tap({x,y});
-  expect(document.querySelector('.dialog-body')?.textContent).toContain('Passing traveler');
+  expect(w.log.some(entry=>entry.text.includes('Passing traveler:'))).toBe(true);
+  expect(document.querySelector('.modal-overlay')).toBeNull();
 });
 
 it('routes around a visible shopkeeper instead of walking into it', () => {
@@ -3371,4 +3376,151 @@ it('keeps player barter curses enabled when ordinary chatter is off',()=>{
   document.querySelector<HTMLButtonElement>('[data-field="primary-action"]')!.click();
   expect(w.inventory.gold).toBeLessThan(10000);
   expect(w.log.some(entry=>entry.text.startsWith('Sigrun: ') && /fuck|shit|bastard|arse|asshole|bollocks/i.test(entry.text))).toBe(true);
+});
+
+describe('directional interaction without conversation dialogs', () => {
+  const key = (key: string, code = '') => window.dispatchEvent(new KeyboardEvent('keydown', {key, code, bubbles:true}));
+  const start = () => {
+    const c = bootstrap(); const w = beginGame(c);
+    const level = w.levels.get(w.current)!;
+    level.entities.clear(); level.occupancy.fill(0); level.props=[];
+    return {c,w,level};
+  };
+  it('uses an underfoot prop immediately without a direction prompt', () => {
+    const {w,level}=start();
+    level.props=[{id:'underfoot',kind:'bones',x:w.player.x,y:w.player.y,exhausted:false}];
+    const turn=w.turn;
+    key('t');
+    expect(level.props[0]!.exhausted).toBe(true);
+    expect(w.turn).toBe(turn+1);
+    expect(document.querySelector('.interaction-bar')).toBeNull();
+    expect(document.querySelector('.modal-overlay')).toBeNull();
+  });
+  it.each([['d','',1,0],['ArrowUp','',0,-1],['End','Numpad1',-1,1],['9','',1,-1]] as const)(
+    'interacts using %s %s without moving', (name,code,dx,dy) => {
+      const {c,w,level}=start(); const {x,y}=w.player;
+      level.entities.set(991,{id:991,kind:'npc',name:'Passing traveler',x:x+dx,y:y+dy,npc:{role:'traveler',giftClaimed:false,stock:[]}});
+      w.visible[idx(x+dx,y+dy)]=1;
+      key('t');
+      expect(document.querySelector('.interaction-bar')?.textContent).toContain('direction');
+      expect(document.querySelector('.modal-overlay')).toBeNull();
+      expect(c.isInputEnabled()).toBe(false);
+      const turn=w.turn;
+      key(name,code);
+      expect(w.turn).toBe(turn+1);
+      expect({x:w.player.x,y:w.player.y}).toEqual({x,y});
+      expect(w.log.some(e=>e.text.includes('Passing traveler:'))).toBe(true);
+      expect(document.querySelector('.modal-overlay')).toBeNull();
+      expect(document.querySelector('.interaction-bar')).toBeNull();
+      expect(c.isInputEnabled()).toBe(true);
+    });
+  it('cancels direction selection without opening pause or spending a turn', () => {
+    const {c,w}=start(); const turn=w.turn;
+    key('t'); key('Escape');
+    expect(document.querySelector('.interaction-bar')).toBeNull();
+    expect(document.querySelector('.modal-overlay')).toBeNull();
+    expect(w.turn).toBe(turn); expect(c.isInputEnabled()).toBe(true);
+  });
+  it('rejects distant map clicks and uses adjacent map clicks', () => {
+    const {w,level}=start();const {x,y}=w.player;
+    level.props=[{id:'adjacent',kind:'bones',x:x+1,y,exhausted:false}];w.visible[idx(x+1,y)]=1;
+    const hooks=(window as unknown as {__cotw:{travel:{tap:(cell:{x:number;y:number})=>void}}}).__cotw;
+    key('t'); const turn=w.turn;
+    hooks.travel.tap({x:x+3,y});
+    expect(w.turn).toBe(turn);expect(document.querySelector('.interaction-bar')).not.toBeNull();
+    hooks.travel.tap({x:x+1,y});
+    expect(level.props[0]!.exhausted).toBe(true);expect(w.turn).toBe(turn+1);
+    expect(document.querySelector('.interaction-bar')).toBeNull();
+  });
+  it('opens merchant trade directly after a directional greeting', () => {
+    const {w,level}=start();const {x,y}=w.player;
+    level.entities.set(991,{id:991,kind:'npc',name:'Peddler',x:x+1,y,npc:{role:'peddler',giftClaimed:false,stock:['x-rock']}});w.visible[idx(x+1,y)]=1;
+    key('t');key('d');
+    expect(document.querySelector('.merchant-panel')).not.toBeNull();
+    expect(document.querySelector('[data-action="trade"]')).toBeNull();
+  });
+  it('reports a level gain once in the log without a dialog', () => {
+    const {c,w,level}=start();
+    w.player.experience=w.data.xpThresholds![1]!-1;w.player.dexterity=100;
+    level.traps=[{id:'level-gain',kind:'pit',x:w.player.x+1,y:w.player.y,known:true}];
+    c.dispatchAction({type:'DISARM'});
+    expect(w.player.level).toBe(2);
+    expect(w.log.filter(e=>/reached level 2/.test(e.text))).toHaveLength(1);
+    expect(document.querySelector('.modal-overlay')).toBeNull();
+    expect(c.isInputEnabled()).toBe(true);
+  });
+});
+
+
+it('advances player speech per context and applies current health only to the hero', () => {
+  let now=100000;
+  const c=bootstrap({now:()=>now});const w=beginGame(c);
+  w.levels.get(w.current)!.entities.clear();
+  w.player.maxHp=100;w.player.hp=100;w.inventory.gold=10000;
+  const speech=()=>w.log.filter(e=>e.text.startsWith(`${w.player.name}: `)).at(-1)!.text;
+  c.dispatchAction({type:'SEARCH'});
+  expect(speech()).toBe(chatterLine(w.worldSeed,0,'search',w.player.name));
+  now+=13000;
+  const shop=loadTownShops().shops.gunnhild!;
+  c.openMerchant(shop);
+  document.querySelector<HTMLButtonElement>('.merchant-buy-list .item-row-button')!.click();
+  document.querySelector<HTMLButtonElement>('[data-field="primary-action"]')!.click();
+  expect(w.log.at(-1)!.text).toBe(chatterLine(w.worldSeed,0,'barter',shop.name));
+  closeAllModals();
+  c.dispatchAction({type:'WAIT'});c.dispatchAction({type:'WAIT'});
+  now+=13000;w.player.hp=20;
+  c.dispatchAction({type:'SEARCH'});
+  const clear=chatterLine(w.worldSeed,1,'search',w.player.name);
+  expect(speech()).toBe(garbleSpeech(clear,w.player.hp,w.player.maxHp,w.worldSeed,1));
+  expect(speech()).not.toBe(clear);
+  now+=13000;w.player.hp=100;
+  c.dispatchAction({type:'SEARCH'});
+  expect(speech()).toBe(chatterLine(w.worldSeed,2,'search',w.player.name));
+});
+
+it('tracks curse contexts independently and garbles the current injured voice', () => {
+  const c=bootstrap();const w=beginGame(c);
+  root.querySelector<HTMLButtonElement>('[data-action="pause"]')!.click();
+  document.querySelector<HTMLButtonElement>('[data-pause-action="settings"]')!.click();
+  document.querySelector<HTMLInputElement>('[data-option="curses"]')!.click();closeAllModals();
+  const level=w.levels.get(w.current)!;level.entities.clear();level.occupancy.fill(0);
+  w.player.hp=25;w.player.maxHp=100;
+  c.dispatchAction({type:'SEARCH'});
+  const expected=garbleSpeech(curseLine(w.worldSeed,0,'search',w.player.name),w.player.hp,w.player.maxHp,w.worldSeed,0);
+  expect(w.log.at(-1)!.text).toBe(expected);
+  const floor=level.tiles[idx(w.player.x,w.player.y)]!;
+  level.tiles[idx(w.player.x+1,w.player.y)]=floor;
+  level.traps=[{id:'separate-context',kind:'pit',x:w.player.x+1,y:w.player.y,known:false}];
+  c.dispatchAction({type:'MOVE',dx:1,dy:0});
+  expect(w.log.at(-1)!.text).toBe(garbleSpeech(curseLine(w.worldSeed,0,'trap',w.player.name),w.player.hp,w.player.maxHp,w.worldSeed,0));
+});
+
+it('logs empty ranged equipment guidance without opening a dialog', () => {
+  const c=bootstrap();const w=beginGame(c);
+  w.inventory.equipment.weapon=undefined;w.inventory.pack=[];
+  window.dispatchEvent(new KeyboardEvent('keydown',{key:'f'}));
+  expect(w.log.at(-1)?.text).toContain('Equip a bow');
+  expect(document.querySelector('.modal-overlay')).toBeNull();
+});
+
+it('clears interaction targeting when the window loses focus', () => {
+  const c=bootstrap();beginGame(c);
+  window.dispatchEvent(new KeyboardEvent('keydown',{key:'t'}));
+  expect(document.querySelector('.interaction-bar')).not.toBeNull();
+  window.dispatchEvent(new Event('blur'));
+  expect(document.querySelector('.interaction-bar')).toBeNull();
+  window.dispatchEvent(new Event('focus'));
+  expect(c.isInputEnabled()).toBe(true);
+});
+
+it('cleans direction selection when a modal opens, a new game begins, and the controller is destroyed', () => {
+  const c=bootstrap();const w=beginGame(c);
+  const start=()=>window.dispatchEvent(new KeyboardEvent('keydown',{key:'t'}));
+  start();c.openMerchant(loadTownShops().shops.gunnhild!);
+  expect(document.querySelector('.interaction-bar')).toBeNull();closeAllModals();
+  start();c.newGame();
+  expect(document.querySelector('.interaction-bar')).toBeNull();closeAllModals();
+  start();const turn=w.turn;c.destroy();controller=null;
+  window.dispatchEvent(new KeyboardEvent('keydown',{key:'d'}));
+  expect(document.querySelector('.interaction-bar')).toBeNull();expect(w.turn).toBe(turn);
 });

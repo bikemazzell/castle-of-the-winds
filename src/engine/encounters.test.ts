@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { createCharacter } from './character';
 import { createEmptyLevel, idx, validateOccupancy } from './map';
+import { proceduralNpcName } from './npc-names';
 import { createWorld } from './world';
 import { serializeGame, deserializeGame } from './save';
 import { populateEncounters, tickEncounters, interactEncounter, scavengeNearby, placeShopkeeper } from './encounters';
@@ -18,6 +19,95 @@ function fixture() {
     return { world, level };
 }
 describe('encounters', () => {
+    it('gives procedural NPCs unique persistent names across floors and revisits', () => {
+        const { world, level } = fixture();
+        const rngState = world.rng.getState();
+        populateEncounters(world, world.levels.get(0)!);
+        populateEncounters(world, level);
+        for (let index = 2; index <= 24; index++) {
+            const next = createEmptyLevel(index);
+            next.tiles.fill(1);
+            world.levels.set(index, next);
+            populateEncounters(world, next);
+        }
+        const names = [...world.levels.values()].flatMap(floor => [...floor.entities.values()].map(e => e.name));
+        expect(new Set(names.map(name => name.toLowerCase())).size).toBe(names.length);
+        expect(world.rng.getState()).toBe(rngState);
+        for (const floor of world.levels.values()) populateEncounters(world, floor);
+        expect([...world.levels.values()].flatMap(floor => [...floor.entities.values()].map(e => e.name))).toEqual(names);
+        // The fixture catalog contains only levels zero and one.
+        for (let index = 2; index <= 24; index++) world.levels.delete(index);
+        const loaded = deserializeGame(serializeGame(world), world.data);
+        expect([...loaded.levels.get(1)!.entities.values()].map(e => e.name)).toEqual([...level.entities.values()].map(e => e.name));
+    });
+    it.each(['traveler', 'ghost', 'critter'] as const)('advances %s dialogue per conversation and preserves progress in saves', role => {
+        const { world, level } = fixture();
+        populateEncounters(world, level);
+        const npc = [...level.entities.values()].find(e => e.npc?.role === role)!;
+        world.player.x = npc.x - 1;
+        world.player.y = npc.y;
+        const first = interactEncounter(world, npc.id).messages[0];
+        const saved = serializeGame(world);
+        const second = interactEncounter(world, npc.id).messages[0];
+        expect(second).not.toBe(first);
+        const loaded = deserializeGame(saved, world.data);
+        loaded.visible.fill(1);
+        loaded.turn += 400;
+        expect(interactEncounter(loaded, npc.id).messages[0]).toBe(second);
+        expect(loaded.levels.get(1)!.entities.get(npc.id)!.npc!.talkCount).toBe(2);
+        if (role === 'critter') expect(second).toMatch(new RegExp(`^${npc.name} [a-z]`));
+    });
+    it('accepts legacy NPCs without conversation counts and rejects invalid saved counts', () => {
+        const { world, level } = fixture();
+        populateEncounters(world, level);
+        const saved = serializeGame(world);
+        const npc = saved.levels['1']!.entities.find(e => e.npc)!;
+        delete npc.npc!.talkCount;
+        expect(() => deserializeGame(saved, world.data)).not.toThrow();
+        for (const invalid of [-1, 0.5, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1]) {
+            npc.npc!.talkCount = invalid;
+            expect(() => deserializeGame(saved, world.data)).toThrow(/talkCount/);
+        }
+    });
+    it('avoids names already held by legacy or fixed NPCs', () => {
+        const { world, level } = fixture();
+        const candidate = proceduralNpcName(world, level, 1, 'traveler');
+        const town = world.levels.get(0)!;
+        const owner = placeShopkeeper(world, town, { shopId: 'legacy', name: candidate.toUpperCase(), x: 10, y: 10, stock: [] })!;
+        populateEncounters(world, level);
+        expect(level.entities.get(1)!.name.toLowerCase()).not.toBe(candidate.toLowerCase());
+        expect(owner.name).toBe(candidate.toUpperCase());
+    });
+    it('uses every traveler line before repeating without consuming gameplay randomness', () => {
+        const { world, level } = fixture();
+        populateEncounters(world, level);
+        const npc = [...level.entities.values()].find(e => e.npc?.role === 'traveler')!;
+        world.player.x = npc.x - 1;
+        world.player.y = npc.y;
+        const state = world.rng.getState();
+        const messages = Array.from({ length: 40 }, () => interactEncounter(world, npc.id).messages[0]);
+        expect(new Set(messages).size).toBe(40);
+        expect(interactEncounter(world, npc.id).messages[0]).toBe(messages[0]);
+        expect(world.rng.getState()).toBe(state);
+    });
+    it('garbles wounded speakers but leaves critter actions clear', () => {
+        const { world, level } = fixture();
+        populateEncounters(world, level);
+        for (const role of ['traveler', 'critter'] as const) {
+            const npc = [...level.entities.values()].find(e => e.npc?.role === role)!;
+            world.player.x = npc.x - 1;
+            world.player.y = npc.y;
+            const clear = interactEncounter(world, npc.id).messages[0];
+            npc.npc!.talkCount = 0;
+            npc.monster = { hp: 1, maxHp: 100, stats: { maxHp: 100, ac: 1, toHit: 1, damage: { count: 1, sides: 4, bonus: 0 }, speed: 1, xp: 5 } };
+            const wounded = interactEncounter(world, npc.id).messages[0];
+            if (role === 'critter') expect(wounded).toBe(clear);
+            else {
+                expect(wounded).not.toBe(clear);
+                expect(wounded!.startsWith(`${npc.name}: `)).toBe(true);
+            }
+        }
+    });
     it('rejects unseen NPCs and props without spending their rewards', () => {
         const {world,level}=fixture(); populateEncounters(world,level);
         const npc=[...level.entities.values()].find(e=>e.npc?.role==='traveler')!;

@@ -11,7 +11,8 @@ import type { CotwHooks } from '../../src/app/devtools';
 import { newWorld } from '../../src/engine/game';
 import { serializeGame, deserializeGame } from '../../src/engine/save';
 import { spawnMonsterState } from '../../src/engine/combat';
-import { CURSE_LINES } from '../../src/engine/curses';
+import { curseLine } from '../../src/engine/curses';
+import { garbleSpeech } from '../../src/engine/injured-speech';
 import { idx } from '../../src/engine/map';
 import { TILE_FLOOR, FLAG_ROOM } from '../../src/engine/dungeon';
 import { creatureAppearance } from '../../src/app/render/creature-catalog';
@@ -19,7 +20,8 @@ import { launchBrave, ensureVite, newPage } from './brave';
 import { runWith, screenshot, collectPageErrors, assertNoPageErrors } from './helpers';
 
 declare global { interface Window { __cotw: CotwHooks } }
-const curseCount=(log:string[]):number=>log.filter(entry=>Object.values(CURSE_LINES).flat().some(line=>entry.endsWith(line))).length;
+// Ordinary chatter is disabled in this fixture, so any hero speech is a curse.
+const curseCount=(log:string[]):number=>log.filter(entry=>entry.startsWith('Sailor: ')).length;
 async function frame(page:Page):Promise<void>{await page.evaluate(()=>new Promise<void>(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve()))));}
 async function options(page:Page):Promise<void>{await page.click('[data-action="pause"]');await page.click('[data-pause-action="settings"]');}
 async function closeOptions(page:Page):Promise<void>{await page.keyboard.press('Escape');await frame(page);}
@@ -71,6 +73,7 @@ await runWith([],async close=>{
   assert.equal(await page.$eval('[data-option="curses"]',el=>(el as HTMLInputElement).checked),false,'Curses defaults off');
   assert.equal(await page.$eval('[data-option="blood"]',el=>(el as HTMLInputElement).checked),true);
   await page.click('[data-reduce-motion="on"]');
+  await page.click('[data-option="chatter"]');
   await closeOptions(page);
   const heights:number[]=[];
   for(const creature of creatures)heights.push((await sample(page,creature.x,creature.y,[creatureAppearance(creature.name).color])).height);
@@ -83,7 +86,12 @@ await runWith([],async close=>{
   await options(page);await page.click('[data-option="curses"]');await closeOptions(page);
   await page.keyboard.press('ArrowRight');await page.keyboard.press('ArrowRight');
   const enabledLog=await page.evaluate(()=>window.__cotw.log());
-  assert.ok(enabledLog.some(entry=>CURSE_LINES.trap.some(line=>entry.endsWith(line))),'enabled trap hit adds a curse');
+  const injuredHp=await page.evaluate(()=>window.__cotw.hp());
+  const clearTrap=curseLine(world.worldSeed,0,'trap',world.player.name);
+  const injuredTrap=garbleSpeech(clearTrap,injuredHp,world.player.maxHp,world.worldSeed,0);
+  assert.notEqual(injuredTrap,clearTrap,'low HP must visibly corrupt the expected trap curse');
+  assert.ok(injuredTrap.startsWith('Sailor: '),'injury leaves the speaker name clear');
+  assert.ok(enabledLog.includes(injuredTrap),`enabled trap hit adds the exact injury-corrupted curse: ${injuredTrap}`);
   const curses=curseCount(enabledLog);
   await screenshot(page,'docs/e2e/effects-curses-and-gore.png');
   await options(page);await page.click('[data-option="curses"]');await closeOptions(page);
@@ -96,6 +104,23 @@ await runWith([],async close=>{
   await options(page);await page.click('[data-option="blood"]');await closeOptions(page);
   assert.equal((await sample(page,11,10,bloodColors)).count,0,'Blood off hides existing stains');
   await screenshot(page,'docs/e2e/effects-blood-disabled.png');
+  // Import the same scene at full health into a fresh controller. The first
+  // search comment must match the authored line exactly, with no speech damage.
+  await options(page);await page.click('[data-option="curses"]');await closeOptions(page);
+  world.player.hp=world.player.maxHp;
+  const healthyFile=join(folder,'effects-healthy.json');
+  await writeFile(healthyFile,JSON.stringify(serializeGame(world)));
+  const healthyPage=await newPage(browser.browser,server.url);
+  const healthyErrors=collectPageErrors(healthyPage).errors;
+  await healthyPage.click('[data-action="load-game"]');
+  const healthyUpload=await healthyPage.waitForSelector('.save-dialog input[type="file"]');
+  await healthyUpload!.uploadFile(healthyFile);
+  await healthyPage.waitForFunction(()=>window.__cotw.position()!==null);
+  await healthyPage.evaluate(()=>window.__cotw.dispatch({type:'SEARCH'}));
+  assert.equal(await healthyPage.evaluate(()=>window.__cotw.hp()),world.player.maxHp,'healthy speech fixture stays at full HP');
+  const healthyLog=await healthyPage.evaluate(()=>window.__cotw.log());
+  assert.ok(healthyLog.includes(curseLine(world.worldSeed,0,'search',world.player.name)),'full-health curse remains the exact authored line');
+  assertNoPageErrors(healthyErrors);
   assertNoPageErrors(errors);
-  console.log(JSON.stringify({part:1,assisted:true,cursesDefaultOff:true,cursesTrapOnAndOff:true,creatureHeights:heights,barVisible:true,reducedMotionTrailPixels:stains,bloodOffHidesStains:true,screenshots:'docs/e2e/effects-*.png'}));
+  console.log(JSON.stringify({part:1,assisted:true,cursesDefaultOff:true,cursesTrapOnAndOff:true,injuredSpeechExact:true,fullHealthSpeechClear:true,creatureHeights:heights,barVisible:true,reducedMotionTrailPixels:stains,bloodOffHidesStains:true,screenshots:'docs/e2e/effects-*.png'}));
 });

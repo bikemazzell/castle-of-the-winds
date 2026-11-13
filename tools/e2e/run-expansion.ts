@@ -166,8 +166,23 @@ await runWith([], async close => {
     await page.keyboard.press('Enter');
     assert.equal(await page.evaluate(()=>window.__cotw.turn()),keyboardTurn+1,'focused target button casts exactly once');
     assert.equal(await page.evaluate(()=>window.__cotw.targeting().active),false);
-    await page.keyboard.press('t');await page.click('[data-encounter="241"]');await page.keyboard.press('Escape');
-    await page.keyboard.press('t');await page.click('[data-encounter="241"]');await page.keyboard.press('Escape');
+    const talkTurn=await page.evaluate(()=>window.__cotw.turn());
+    const talkPosition=await page.evaluate(()=>window.__cotw.position());
+    await page.keyboard.press('t');
+    await page.waitForSelector('.interaction-bar');
+    assert.equal(await page.$('.modal-overlay'),null);
+    await screenshot(page,`docs/e2e/expansion-part${part}-interact.png`);
+    await page.keyboard.press('Escape');
+    assert.equal(await page.$('.interaction-bar'),null);
+    assert.equal(await page.evaluate(()=>window.__cotw.turn()),talkTurn);
+    await page.keyboard.press('t');await page.keyboard.press('s');
+    assert.equal(await page.$('.modal-overlay'),null);
+    assert.deepEqual(await page.evaluate(()=>window.__cotw.position()),talkPosition);
+    assert.equal(await page.evaluate(()=>window.__cotw.turn()),talkTurn+1);
+    await page.keyboard.press('t');
+    { const target=await mapPoint(page,10,11); await page.mouse.click(target.x,target.y); }
+    assert.equal(await page.$('.interaction-bar'),null);
+    assert.equal(await page.$('.modal-overlay'),null);
     await page.keyboard.press('x');await page.keyboard.press('x');
     await useItem(page,mead.uid);await useItem(page,dye.uid);await useItem(page,polish.uid);
     const saved=await saveSnapshot(page,part);
@@ -181,7 +196,7 @@ await runWith([], async close => {
     await page.reload({waitUntil:'load'});await page.click(`[data-part="${part}"]`);await page.click('[data-action="continue"]');
     await page.waitForFunction(()=>window.__cotw.position()!==null);
     await screenshot(page,`docs/e2e/expansion-part${part}-restored.png`);
-    await page.keyboard.press('t');await page.click('[data-encounter="241"]');await page.keyboard.press('Escape');await page.keyboard.press('x');
+    await page.keyboard.press('t');await page.keyboard.press('s');await page.keyboard.press('x');
     const reloaded=await saveSnapshot(page,part);
     assert.equal(reloaded.inventory.gold,saved.inventory.gold);assert.equal(reloaded.inventory.pack.find(i=>i.defId==='x-bone')?.count,1);
     assert.equal(reloaded.player.underwearColor,'purple');assert.equal(reloaded.inventory.equipment.helm?.color,'gold');

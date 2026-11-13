@@ -49,7 +49,8 @@
 .inv-details-col:has(.inv-hint) { background: transparent; }
 .inv-details-col [data-field='details-host']:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
 .inv-details-col .primary-action { width: 100%; margin-block: 12px; }
-.inv-details-col .drop-area { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.inv-details-col .drop-area { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; }
+.inv-details-col .drop-area .quantity-control { margin: 0; }
 .inv-details-col .drop-area p { flex-basis: 100%; }
 .inv-footer { flex-wrap: wrap; }
 .inv-footer-info { flex: 1 1 14rem; }

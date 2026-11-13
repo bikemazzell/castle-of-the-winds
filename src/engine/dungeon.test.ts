@@ -32,7 +32,7 @@ interface FixtureCase {
 }
 
 const fixture = JSON.parse(
-  readFileSync(new URL('../../docs/recon/dungeon-xcheck.json', import.meta.url), 'utf8'),
+  readFileSync(new URL('./fixtures/dungeon-reference.json', import.meta.url), 'utf8'),
 ) as { generator: string; cases: FixtureCase[] };
 
 /** The Python reference gates up-stairs on `level > 3`. */

@@ -2951,6 +2951,14 @@ describe('part selection (PART2-PLAN Task P6)', () => {
     expect(w1.data.levels.length).toBe(12);
   });
 
+  it.each([1,2] as const)('shows the campaign %s manual in Help', part => {
+    const {c}=bootP2();beginOnPart(c,part,'Reader');
+    document.querySelector<HTMLButtonElement>('[data-action="pause"]')!.click();
+    document.querySelector<HTMLButtonElement>('[data-pause-action="help"]')!.click();
+    document.querySelector<HTMLButtonElement>('[data-htab="manual"]')!.click();
+    expect(document.querySelector('[data-panel="manual"]')?.textContent).toContain(part===2?'The Story So Far':'Order Information');
+  });
+
   it('manual saves never collide across parts', () => {
     const { c, part1, part2 } = bootP2();
     beginOnPart(c, 2, 'Beta');

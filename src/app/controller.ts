@@ -70,6 +70,7 @@ import {
 } from './prefs';
 import tilesJson from '../data/tiles.json';
 import manualJson from '../data/manual.json';
+import part2ManualJson from '../data/part2/manual.json';
 
 export interface ControllerDeps {
   root: HTMLElement;
@@ -961,7 +962,8 @@ export function createGameController(deps: ControllerDeps): GameController {
   };
 
   const openHelp = (): void => {
-    const topics = (manualJson as unknown as { topics: ManualTopic[] }).topics;
+    const manual = (world?.data.part ?? titlePart) === 2 ? part2ManualJson : manualJson;
+    const topics = (manual as unknown as { topics: ManualTopic[] }).topics;
     // Modern landing (UI plan Phase 7): controls + FAQ first, manual as a tab.
     const help = buildTabbedHelp(topics);
     const handle = openModal({ title: 'Help', content: help.el, className: 'dialog-help' });

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import messagesJson from '../data/messages.json';
+import messagesJson from '../data/part1/messages.json';
 import { createMessageBook, formatMessage } from './messages';
 
 describe('formatMessage (original %t/%i templating)', () => {

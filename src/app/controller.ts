@@ -69,7 +69,7 @@ import {
   type PreferenceStorage,
 } from './prefs';
 import tilesJson from '../data/tiles.json';
-import manualJson from '../data/manual.json';
+import manualJson from '../data/part1/manual.json';
 import part2ManualJson from '../data/part2/manual.json';
 
 export interface ControllerDeps {

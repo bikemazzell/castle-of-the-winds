@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import questsJson from '../data/quests.json';
-import storyJson from '../data/story.json';
+import questsJson from '../data/part1/quests.json';
+import storyJson from '../data/part1/story.json';
 import part2QuestsJson from '../data/part2/quests.json';
 import part2MonstersJson from '../data/part2/monsters.json';
 import part2StoryJson from '../data/part2/story.json';
@@ -230,7 +230,7 @@ describe('quest engine (world integration)', () => {
 describe('real-data load', () => {
   it('loadWorldData carries quests + story from extracted data', () => {
     // game.ts wiring test lives in game.test.ts; here we pin the files.
-    const raw = JSON.parse(readFileSync(new URL('../data/quests.json', import.meta.url), 'latin1')) as {
+    const raw = JSON.parse(readFileSync(new URL('../data/part1/quests.json', import.meta.url), 'latin1')) as {
       quests: unknown[];
     };
     expect(raw.quests).toHaveLength(1);

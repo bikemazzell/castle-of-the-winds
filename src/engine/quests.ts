@@ -12,7 +12,7 @@ export interface QuestStage {
   id: string;
   trigger: QuestTrigger;
   journalText: string;
-  /** Story resource ids (see src/data/story.json) to queue for display. */
+  /** Story resource ids (see src/data/part1/story.json) to queue for display. */
   storyTexts?: number[];
   optional?: boolean;
 }

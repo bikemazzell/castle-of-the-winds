@@ -73,7 +73,8 @@ npm run e2e:campaign2
 Campaign browser tests include assisted phases with edited characters. They do not establish full-campaign balance.
 
 The engine lives in `src/engine/`. The interface and renderer live in `src/app/`.
-Game definitions live in `src/data/`. Procedural artwork lives in `src/app/render/`.
+Campaign definitions live in `src/data/part1/` and `src/data/part2/`.
+Shared tiles and experience values live in `src/data/`. Procedural artwork lives in `src/app/render/`.
 Gameplay uses seeded random numbers. Visual effects use separate calculations and do not change game results.
 
 ## Attribution and publication

@@ -1,4 +1,4 @@
-import monsters from '../../data/monsters.json';
+import monsters from '../../data/part1/monsters.json';
 import part2Monsters from '../../data/part2/monsters.json';
 import { creatureAppearance } from './creature-catalog';
 import { creaturePixels, pixelCanvas } from './pixel-art';

@@ -3,15 +3,15 @@
  * runtime types. Pure data plumbing — no DOM.
  */
 
-import overworldJson from '../data/overworld.json';
-import levelsJson from '../data/levels.json';
+import overworldJson from '../data/part1/overworld.json';
+import levelsJson from '../data/part1/levels.json';
 import tilesJson from '../data/tiles.json';
-import itemsJson from '../data/items.json';
-import spellsJson from '../data/spells.json';
-import monstersJson from '../data/monsters.json';
+import itemsJson from '../data/part1/items.json';
+import spellsJson from '../data/part1/spells.json';
+import monstersJson from '../data/part1/monsters.json';
 import xpJson from '../data/xp.json';
-import questsJson from '../data/quests.json';
-import storyJson from '../data/story.json';
+import questsJson from '../data/part1/quests.json';
+import storyJson from '../data/part1/story.json';
 import part2LevelsJson from '../data/part2/levels.json';
 import part2OverworldJson from '../data/part2/overworld.json';
 import part2ItemsJson from '../data/part2/items.json';

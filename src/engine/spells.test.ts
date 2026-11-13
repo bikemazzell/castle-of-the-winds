@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import spellsFile from '../data/spells.json';
+import spellsFile from '../data/part1/spells.json';
 import { createEmptyLevel, idx, type Level } from './map';
 import type { Player } from './types';
 import { MSLCG } from './rng';

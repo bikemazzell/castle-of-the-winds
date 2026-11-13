@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import monsters from '../../data/monsters.json';
+import monsters from '../../data/part1/monsters.json';
 import { creatureAppearance } from './creature-catalog';
 it('assigns every shipped Part One monster without using the unknown fallback', () => {
     for (const { name } of monsters.records)

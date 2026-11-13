@@ -5,12 +5,12 @@ import { describe, expect, it } from 'vitest';
 import { terrainPixels } from '../app/render/terrain-art';
 import { ITEMS_CONTRACT, MONSTERS_CONTRACT, SPELLS_CONTRACT, validateTableFile } from './table-contract';
 import type { ItemsFile, MonstersFile, SpellsFile } from '../engine/types';
-import items from './items.json';
-import levels from './levels.json';
-import manual from './manual.json';
-import messages from './messages.json';
-import monsters from './monsters.json';
-import overworld from './overworld.json';
+import items from './part1/items.json';
+import levels from './part1/levels.json';
+import manual from './part1/manual.json';
+import messages from './part1/messages.json';
+import monsters from './part1/monsters.json';
+import overworld from './part1/overworld.json';
 import part2Items from './part2/items.json';
 import part2Levels from './part2/levels.json';
 import part2Manifest from './part2/manifest.json';
@@ -20,8 +20,8 @@ import part2Shops from './part2/shops.json';
 import part2Spells from './part2/spells.json';
 import part2Story from './part2/story.json';
 import part2Overworld from './part2/overworld.json';
-import shops from './shops.json';
-import spells from './spells.json';
+import shops from './part1/shops.json';
+import spells from './part1/spells.json';
 import tiles from './tiles.json';
 import xp from './xp.json';
 
@@ -207,7 +207,7 @@ describe('Part 2 dry-run bundle', () => {
 
 describe('campaign data (Task 5.6)', () => {
   it('story.json has 15 texts hash-bound to CASTLE1.EXE', async () => {
-    const story = (await import('./story.json')).default as {
+    const story = (await import('./part1/story.json')).default as {
       source: { sha256: string };
       texts: Record<string, string>;
     };
@@ -219,7 +219,7 @@ describe('campaign data (Task 5.6)', () => {
   });
 
   it('quests.json quest covers the Part 1 arc and validates against levels + monsters', async () => {
-    const quests = (await import('./quests.json')).default as {
+    const quests = (await import('./part1/quests.json')).default as {
       quests: {
         title: string;
         boss: { level: number; monster: string; guards: { name: string; count: number }[] };

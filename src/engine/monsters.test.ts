@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import monstersJson from '../data/monsters.json';
-import questsJson from '../data/quests.json';
+import monstersJson from '../data/part1/monsters.json';
+import questsJson from '../data/part1/quests.json';
 import { createCharacter } from './character';
 import { playerAttack, spawnMonsterState } from './combat';
 import {

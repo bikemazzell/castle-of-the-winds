@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import itemsFile from '../data/items.json';
+import itemsFile from '../data/part1/items.json';
 import { loadItemDefs } from './items';
 import type { EquipSlot } from './types';
 

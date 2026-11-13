@@ -4,8 +4,8 @@
  * matching merchant dialog. App-layer only — the engine never needs shops.
  */
 
-import overworldJson from '../../data/overworld.json';
-import shopsJson from '../../data/shops.json';
+import overworldJson from '../../data/part1/overworld.json';
+import shopsJson from '../../data/part1/shops.json';
 import overworld2Json from '../../data/part2/overworld.json';
 import shops2Json from '../../data/part2/shops.json';
 import { loadWorldData } from '../../engine/game';

@@ -5,7 +5,7 @@ import { recordCombat } from './combat-feedback';
  * Attack formula is APPROX (thac0-style: hit when d20 + toHit ≥ 10 + ac);
  * the exact original roll lives in unrecovered combat code
  * (EXTRACTION-GAPS.md #1). All flavor text strings are VERBATIM originals
- * from the EXE string segment (src/data/messages.json — verified by tests).
+ * from the EXE string segment (src/data/part1/messages.json — verified by tests).
  *
  * RNG consumption order (stable, mirrored by tests via parallel MSLCG):
  * attack roll → damage dice → message pick → loot/breath rolls.

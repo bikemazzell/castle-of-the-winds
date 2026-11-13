@@ -88,6 +88,8 @@ export function buildPreferencesContent(data: PreferencesDialogData): HTMLElemen
     }
     const safe = el.querySelector<HTMLInputElement>('[data-option="safe-confirmation"]');
     const blood = el.querySelector<HTMLInputElement>('[data-option="blood"]');
+    const curses = el.querySelector<HTMLInputElement>('[data-option="curses"]');
+    if (curses) curses.checked = current.curses === true;
     if (safe) safe.checked = current.safeConfirmation;
     if (blood) blood.checked = current.blood !== false;
     data.onChange({ ...current });
@@ -194,8 +196,21 @@ export function buildPreferencesContent(data: PreferencesDialogData): HTMLElemen
   const bloodBox = document.createElement('input');
   bloodBox.type = 'checkbox'; bloodBox.dataset.option = 'blood'; bloodBox.checked = current.blood !== false;
   bloodBox.addEventListener('change', () => { current = {...current,blood:bloodBox.checked}; emit(); });
-  bloodRow.append(bloodBox, document.createTextNode('Blood and debris'));
+  bloodRow.append(bloodBox, document.createTextNode('Blood and Gore'));
   el.appendChild(bloodRow);
+
+  const cursesRow = document.createElement('label');
+  cursesRow.className = 'option-row';
+  const cursesBox = document.createElement('input');
+  cursesBox.type = 'checkbox';
+  cursesBox.dataset.option = 'curses';
+  cursesBox.checked = current.curses === true;
+  cursesBox.addEventListener('change', () => {
+    current = { ...current, curses: cursesBox.checked };
+    emit();
+  });
+  cursesRow.append(cursesBox, document.createTextNode('Curses (player swearing)'));
+  el.append(cursesRow);
 
   const footer = document.createElement('div');
   footer.className = 'options-footer';

@@ -41,3 +41,17 @@ it('distinguishes Part Two demons, kings, and the two-headed giant', async () =>
     const names=['The Demon Lord Surtur','Utgardhalok, The Hill Giant King','Rungnir, The Stone Giant King','Thrym, The Frost Giant King','Thiassa, The Fire Giant King','Spiked Devil','Horned Devil','Ice Devil','Abyss Fiend','Two Headed Giant'];
     expect(new Set(names.map(n=>JSON.stringify(creaturePixels(n)))).size).toBe(names.length);
 });
+
+it('sizes small animals, insects, humanoids, and large creatures within one tile', () => {
+    const scale = (name: string) => creatureAppearance(name).scale;
+    expect(scale('Cellar Mouse')).toBe(0.35);
+    expect(scale('Giant Rat')).toBe(0.5);
+    expect(scale('Giant Red Ant')).toBeLessThan(scale('Evil Warrior'));
+    expect(scale('Evil Warrior')).toBeLessThan(scale('Fire Giant'));
+    expect(scale('Young Red Dragon')).toBeLessThan(scale('Ancient Red Dragon'));
+    expect(scale('Ancient Red Dragon')).toBe(1);
+    for (const { name } of monsters.records) {
+        expect(scale(name)).toBeGreaterThan(0);
+        expect(scale(name)).toBeLessThanOrEqual(1);
+    }
+});

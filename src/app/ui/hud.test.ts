@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 /**
  * HUD (UI plan §4, Phase 3): hero status entry (opens Character), location
- * chip (opens Map), pause button, and the four-entry action dock
- * Bag / Spells / Wait / Actions — order fixed, Wait never moves. The message
+ * chip (opens Map), pause button, and the three-entry action dock
+ * Bag / Spells / Actions. Wait lives in the Actions panel. The message
  * log is demoted to a single recent-event line that opens the full log.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -95,16 +95,15 @@ describe('hud (UI plan Phase 3)', () => {
     expect(onAction).toHaveBeenCalledWith('pause');
   });
 
-  it('shows exactly the dock Bag, Spells, Wait, Actions in a stable order', () => {
+  it('shows Bag, Spells, and Actions with Wait inside the action palette', () => {
     const onAction = vi.fn();
     createHud(document.body, actions(onAction));
     const dock = [...document.querySelectorAll('.dock [data-action]')];
-    expect(dock.map((b) => b.textContent)).toEqual(['Bag', 'Spells', 'Wait', 'Actions']);
+    expect(dock.map((b) => b.textContent)).toEqual(['Bag', 'Spells', 'Actions']);
     for (const button of dock) (button as HTMLElement).click();
     expect((onAction.mock.calls as unknown as string[][]).map((c) => c[0])).toEqual([
       'inventory',
       'cast',
-      'wait',
       'actions',
     ]);
   });

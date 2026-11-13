@@ -135,6 +135,7 @@ it('changes blood and debris without changing other preferences',()=>{
  const onChange=vi.fn(),el=buildPreferencesContent({prefs:defaultPreferences(),onChange});
  document.body.appendChild(el);
  const box=el.querySelector<HTMLInputElement>('[data-option="blood"]')!;
+ expect(box.closest('label')!.textContent).toBe('Blood and Gore');
  expect(box.checked).toBe(true);box.click();expect(onChange).toHaveBeenCalledWith({...defaultPreferences(),blood:false});
 });
 
@@ -144,4 +145,17 @@ it('restores the visible blood checkbox and selected controls along with their v
  expect(el.querySelector<HTMLInputElement>('[data-option="blood"]')!.checked).toBe(true);
  expect(el.querySelector<HTMLInputElement>('[data-option="safe-confirmation"]')!.checked).toBe(false);
  expect(el.querySelector('[data-text-scale="1"]')!.classList.contains('active')).toBe(true);
+});
+
+it('offers an off-by-default Curses checkbox, preserves other options, and resets it visibly',()=>{
+ const onChange=vi.fn(),el=buildPreferencesContent({prefs:defaultPreferences(),onChange});document.body.append(el);
+ const box=el.querySelector<HTMLInputElement>('[data-option="curses"]')!;
+ expect(box).not.toBeNull();expect(box.checked).toBe(false);expect(box.closest('label')!.textContent).toBe('Curses (player swearing)');
+ box.click();expect(onChange).toHaveBeenLastCalledWith({...defaultPreferences(),curses:true});
+ el.querySelector<HTMLInputElement>('[data-option="blood"]')!.click();
+ expect(onChange).toHaveBeenLastCalledWith({...defaultPreferences(),curses:true,blood:false});
+ el.querySelector<HTMLButtonElement>('[data-action="restore-defaults"]')!.click();
+ expect(box.checked).toBe(false);expect(onChange).toHaveBeenLastCalledWith(defaultPreferences());
+ const restored=buildPreferencesContent({prefs:{...defaultPreferences(),curses:true},onChange:()=>{}});
+ expect(restored.querySelector<HTMLInputElement>('[data-option="curses"]')!.checked).toBe(true);
 });

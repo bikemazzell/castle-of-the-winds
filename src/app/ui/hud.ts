@@ -1,7 +1,7 @@
 /**
  * HUD (UI plan §4): hero status entry (opens Character), location chip
- * (opens Map), pause button, and the four-entry action dock
- * Bag / Spells / Wait / Actions. Recent events open the full log. All controls expose
+ * (opens Map), pause button, and the three-entry action dock
+ * Bag / Spells / Actions. Recent events open the full log. All controls expose
  * `data-action`; primary targets are >=48px via CSS tokens.
  */
 import { groupLogEntries } from './logview';
@@ -42,11 +42,10 @@ export interface Hud {
   update(state: HudState, log: LogEntry[]): void;
 }
 
-/** Dock entries, in the plan's fixed order. Wait never moves. */
+/** Primary dock entries. Wait belongs to the persistent Actions panel. */
 const DOCK: ReadonlyArray<{ label: string; action: string }> = [
   { label: 'Bag', action: 'inventory' },
   { label: 'Spells', action: 'cast' },
-  { label: 'Wait', action: 'wait' },
   { label: 'Actions', action: 'actions' },
 ];
 
@@ -159,7 +158,7 @@ export function createHud(root: HTMLElement, actions: HudActions): Hud {
     button.type = 'button';
     button.textContent = label;
     button.dataset.action = action;
-    const shortcut = { inventory: 'I', cast: 'C', wait: '.' }[action];
+    const shortcut = { inventory: 'I', cast: 'C' }[action];
     if (shortcut) button.title = `${label} (${shortcut})`;
     button.addEventListener('click', () => actions.onAction(action));
     dock.appendChild(button);

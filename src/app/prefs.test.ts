@@ -139,3 +139,13 @@ it('loads blood and debris preference without breaking older preferences',()=>{
  expect(loadPreferences(storage).blood).toBe(false);
  expect(loadPreferences({getItem:()=>JSON.stringify({}),setItem:()=>{}}).blood).toBe(true);
 });
+
+it('keeps curses off for old preferences and accepts only an explicit stored true',()=>{
+ const storage=memory();expect(defaultPreferences().curses).not.toBe(true);
+ for(const value of [undefined,false,'true',1,null]){
+  storage.setItem('cotw.preferences',JSON.stringify({curses:value}));
+  expect(loadPreferences(storage).curses).not.toBe(true);
+ }
+ savePreferences(storage,{...defaultPreferences(),curses:true});expect(loadPreferences(storage).curses).toBe(true);
+ savePreferences(storage,{...defaultPreferences(),curses:false});expect(loadPreferences(storage).curses).not.toBe(true);
+});

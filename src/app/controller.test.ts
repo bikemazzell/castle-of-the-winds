@@ -729,8 +729,8 @@ describe('death + rest + menus', () => {
     c.dispatchAction({ type: 'WAIT' });
     // Rest lives in the Actions panel (Phase 3 dock)
     root.querySelector<HTMLButtonElement>('[data-action="actions"]')!.click();
-    expect(document.querySelector('.dialog-title')?.textContent).toMatch(/actions/i);
-    (document.querySelector('.dialog [data-action="rest"]') as HTMLButtonElement).click();
+    expect(root.querySelector<HTMLElement>('.action-palette')?.hidden).toBe(false);
+    (document.querySelector('.action-palette [data-action="rest"]') as HTMLButtonElement).click();
     expect(document.querySelector('.dialog-title')?.textContent).toMatch(/rest/i);
     // the dialog-level rest button (inside .dialog) triggers the engine REST
     (document.querySelector('.dialog [data-action="rest"]') as HTMLButtonElement).click();
@@ -841,7 +841,7 @@ describe('controller quest flow', () => {
     const c = bootstrap();
     beginGame(c);
     root.querySelector<HTMLButtonElement>('[data-action="actions"]')!.click();
-    const journal = [...document.querySelectorAll('.dialog button')]
+    const journal = [...document.querySelectorAll('.action-palette button')]
       .find((b) => b.textContent === 'Journal') as HTMLButtonElement | undefined;
     expect(journal).toBeDefined();
     journal!.click();
@@ -1247,10 +1247,11 @@ describe('pause + dock (UI plan Phase 3)', () => {
     root.querySelector<HTMLButtonElement>('[data-action="pause"]')!.click();
   };
 
-  it('dock Wait advances the turn; recent-event line opens the full log', () => {
+  it('Actions Wait advances the turn; recent-event line opens the full log', () => {
     const c = bootstrap();
     const w = beginGame(c);
     const turn0 = w.turn;
+    root.querySelector<HTMLButtonElement>('[data-action="actions"]')!.click();
     root.querySelector<HTMLButtonElement>('[data-action="wait"]')!.click();
     expect(c.getWorld()!.turn).toBe(turn0 + 1);
     const recent = root.querySelector<HTMLButtonElement>('.recent-event')!;
@@ -1292,12 +1293,12 @@ describe('pause + dock (UI plan Phase 3)', () => {
     const c = bootstrap();
     beginGame(c);
     root.querySelector<HTMLButtonElement>('[data-action="actions"]')!.click();
-    const labels = [...document.querySelectorAll('.dialog button')].map((b) => b.textContent);
-    expect(labels).toContain('Search · 1 turn (X)');
-    expect(labels).toContain('Rest · time passes');
+    const labels = [...document.querySelectorAll('.action-palette button')].map((b) => b.textContent);
+    expect(labels).toContain('Search');
+    expect(labels).toContain('Rest');
     const w = c.getWorld()!;
     const turn0 = w.turn;
-    (document.querySelector('.dialog [data-action="search"]') as HTMLButtonElement).click();
+    (document.querySelector('.action-palette [data-action="search"]') as HTMLButtonElement).click();
     expect(c.getWorld()!.turn).toBe(turn0 + 1); // searching costs the turn
   });
 
@@ -1419,21 +1420,18 @@ describe('pause + dock (UI plan Phase 3)', () => {
     click('[data-action="cast"]');
     expect(title()).toMatch(/spellbook/i);
     close();
-    // dock: Wait
+    // Persistent Actions: Wait, Search, Rest, Journal.
+    click('[data-action="actions"]');
     const turn0 = w.turn;
     click('[data-action="wait"]');
     expect(c.getWorld()!.turn).toBe(turn0 + 1);
-    // dock: Actions → Search / Rest / Journal
-    click('[data-action="actions"]');
-    expect(title()).toMatch(/actions/i);
+    expect(root.querySelector<HTMLElement>('.action-palette')?.hidden).toBe(false);
     click('[data-action="search"]');
     expect(c.getWorld()!.turn).toBe(turn0 + 2);
-    click('[data-action="actions"]');
-    click('[data-action="rest"]');
+    click('.action-palette [data-action="rest"]');
     expect(title()).toMatch(/rest/i);
     close();
-    click('[data-action="actions"]');
-    click('[data-action="journal"]');
+    click('.action-palette [data-action="journal"]');
     expect(title()).toMatch(/journal/i);
     close();
     // pause entries
@@ -1460,12 +1458,12 @@ describe('pause + dock (UI plan Phase 3)', () => {
     expect(c.getWorld()).not.toBeNull();
   });
 
-  it('no administrative menu button remains: the dock is exactly the four gameplay entries', () => {
+  it('no administrative menu button remains: the dock contains Bag, Spells, and Actions', () => {
     const c = bootstrap();
     beginGame(c);
     expect(root.querySelector('[data-action="menu"]')).toBeNull();
     const labels = [...root.querySelectorAll('.dock button')].map((b) => b.textContent);
-    expect(labels).toEqual(['Bag', 'Spells', 'Wait', 'Actions']);
+    expect(labels).toEqual(['Bag', 'Spells', 'Actions']);
   });
 });
 
@@ -3304,4 +3302,73 @@ it('routes around a visible shopkeeper instead of walking into it', () => {
   const hooks=(window as unknown as {__cotw:{travel:{hover:(p:{x:number;y:number})=>void;state:()=>{preview:number}}}}).__cotw;
   hooks.travel.hover({x:19,y:20});
   expect(hooks.travel.state().preview).toBe(5);
+});
+
+it('keeps Actions open for repeated turns without blocking movement',()=>{
+  const c=bootstrap();const w=beginGame(c);
+  const toggle=root.querySelector<HTMLButtonElement>('.dock [data-action="actions"]')!;
+  toggle.click();
+  const palette=root.querySelector<HTMLElement>('.action-palette');
+  expect(palette).not.toBeNull();expect(palette!.hidden).toBe(false);
+  expect(document.querySelector('.modal-overlay')).toBeNull();expect(c.isInputEnabled()).toBe(true);
+  const turn=w.turn;
+  palette!.querySelector<HTMLButtonElement>('[data-action="wait"]')!.click();
+  palette!.querySelector<HTMLButtonElement>('[data-action="wait"]')!.click();
+  expect(w.turn).toBe(turn+2);expect(palette!.hidden).toBe(false);
+  expect(root.querySelector('.dock [data-action="wait"]')).toBeNull();
+  window.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}));
+  expect(palette!.hidden).toBe(true);expect(document.querySelector('.modal-overlay')).toBeNull();
+});
+
+it('offers disarming and shows success feedback at a known trap',()=>{
+  const c=bootstrap({reducedMotion:()=>false});const w=beginGame(c);
+  const level=w.levels.get(w.current)!;
+  const x=w.player.x+1,y=w.player.y;
+  level.traps=[{id:'known-pit',kind:'pit',x,y,known:true}];w.player.dexterity=100;
+  root.querySelector<HTMLButtonElement>('[data-action="actions"]')!.click();
+  const disarm=document.querySelector<HTMLButtonElement>('[data-action="disarm"]');
+  expect(disarm).not.toBeNull();disarm!.click();
+  expect(level.traps).toHaveLength(0);
+  const hooks=(window as unknown as {__cotw:{flash:()=>{cells:number;active:boolean}}}).__cotw;
+  expect(hooks.flash().cells).toBe(1);
+  expect(hooks.flash().active).toBe(true);
+  expect(w.log.some(entry=>entry.text==='You disarmed the trap.')).toBe(true);
+});
+
+it('Curses adds a player reaction to traps and stops when disabled',()=>{
+  const c=bootstrap();const w=beginGame(c);
+  const toggleCurses=()=>{
+    root.querySelector<HTMLButtonElement>('[data-action="pause"]')!.click();
+    document.querySelector<HTMLButtonElement>('[data-pause-action="settings"]')!.click();
+    document.querySelector<HTMLInputElement>('[data-option="curses"]')!.click();
+    closeAllModals();
+  };
+  toggleCurses();
+  const level=w.levels.get(w.current)!;
+  level.entities.clear();level.occupancy.fill(0);
+  w.player.hp=w.player.maxHp=100;
+  const floor=level.tiles[idx(w.player.x,w.player.y)]!;
+  for(let n=1;n<=2;n++)level.tiles[idx(w.player.x+n,w.player.y)]=floor;
+  level.traps=[1,2].map(n=>({id:`curse-pit-${n}`,kind:'pit' as const,x:w.player.x+n,y:w.player.y,known:false}));
+  w.log=[];
+  c.dispatchAction({type:'MOVE',dx:1,dy:0});
+  expect(w.log.some(entry=>entry.text.startsWith('Sigrun: ') && /fuck|shit|bastard|arse|asshole/i.test(entry.text))).toBe(true);
+  expect(w.log.filter(entry=>entry.text.startsWith('Sigrun: '))).toHaveLength(1);
+  toggleCurses();w.log=[];
+  c.dispatchAction({type:'MOVE',dx:1,dy:0});
+  expect(w.log.some(entry=>/fuck|shit|bastard|arse|asshole/i.test(entry.text))).toBe(false);
+});
+
+it('keeps player barter curses enabled when ordinary chatter is off',()=>{
+  const c=bootstrap();const w=beginGame(c);
+  root.querySelector<HTMLButtonElement>('[data-action="pause"]')!.click();
+  document.querySelector<HTMLButtonElement>('[data-pause-action="settings"]')!.click();
+  document.querySelector<HTMLInputElement>('[data-option="curses"]')!.click();
+  document.querySelector<HTMLInputElement>('[data-option="chatter"]')!.click();closeAllModals();
+  w.inventory.gold=10000;w.log=[];
+  c.openMerchant(loadTownShops().shops.gunnhild!);
+  document.querySelector<HTMLButtonElement>('.merchant-buy-list .item-row-button')!.click();
+  document.querySelector<HTMLButtonElement>('[data-field="primary-action"]')!.click();
+  expect(w.inventory.gold).toBeLessThan(10000);
+  expect(w.log.some(entry=>entry.text.startsWith('Sigrun: ') && /fuck|shit|bastard|arse|asshole|bollocks/i.test(entry.text))).toBe(true);
 });

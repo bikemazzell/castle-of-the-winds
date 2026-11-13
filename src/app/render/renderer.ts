@@ -1,3 +1,4 @@
+import { drawTrap } from './trap-art';
 import { drawActionFeedback, type ActionCue } from './action-feedback';
 import { movementPosition } from './movement';
 import { idlePose } from './ambient';
@@ -142,12 +143,12 @@ function actorOffset(scene: SceneInput, position: Point, motion?: ActorMotion): 
   return { x: 0, y: 0 };
 }
 
-function drawActor(ctx: Ctx2D, camera: Camera, scene: SceneInput, position: Point, image: unknown, motion?: ActorMotion, identity = 0, idle = 'breathe'): void {
+function drawActor(ctx: Ctx2D, camera: Camera, scene: SceneInput, position: Point, image: unknown, motion?: ActorMotion, identity = 0, idle = 'breathe', scale = 1): void {
   const cell = camera.worldToScreen(position.x, position.y);
   const offset = actorOffset(scene, position, motion);
   // Integer offsets retain the original pixel edges through every frame.
   const pose = scene.visual && !motion ? idlePose(idle, scene.visual.now, identity, scene.visual.reduced) : {x:0,y:0,height:1,width:1};
-  const height = Math.round(camera.tile * pose.height), width = Math.round(camera.tile * pose.width);
+  const height = Math.round(camera.tile * scale * pose.height), width = Math.round(camera.tile * scale * pose.width);
   ctx.drawImage(image, cell.x + Math.round(offset.x * camera.tile + (camera.tile-width)/2), cell.y + Math.round(offset.y * camera.tile + pose.y*camera.tile + camera.tile-height), width, height);
 }
 const ENTITY_COLORS: Record<string, string> = {
@@ -264,6 +265,10 @@ export function renderFrame(
 
   if (scene.visual?.impacts) drawImpacts(ctx,camera,scene.visual.impacts,scene.seen,scene.visible,scene.visual.now,scene.visual.reduced);
 
+  for (const trap of scene.level.traps ?? []) {
+    if (trap.known) drawTrap(ctx,camera,trap);
+  }
+
   for (const item of scene.groundItems ?? []) {
     if (scene.seen[idx(item.x, item.y)]) {
       marker(ctx, camera, item.x, item.y, ITEM_COLOR, 0.4);
@@ -279,22 +284,11 @@ export function renderFrame(
     if (scene.visible[idx(entity.x, entity.y)]) {
       const sprite = styles.sprites[entity.npc ? `npc:${entity.npc.role}` : actorSpriteName(entity.name)] ?? styles.sprites['actor:unknown'];
       if (sprite) {
-        drawActor(ctx, camera, scene, entity, sprite, scene.animation?.entities?.get(entity.id),entity.id,creatureAppearance(entity.name).idle);
+        const appearance = creatureAppearance(entity.name);
+        const scale = entity.npc?.role === 'critter' ? 0.35 : entity.npc?.role === 'ghost' ? 0.75 : entity.npc ? 0.8 : appearance.scale;
+        drawActor(ctx, camera, scene, entity, sprite, scene.animation?.entities?.get(entity.id), entity.id, appearance.idle, scale);
       } else {
         marker(ctx, camera, entity.x, entity.y, ENTITY_COLORS[entity.kind] ?? ENTITY_COLORS.monster!, 0.6);
-      }
-      if (entity.kind === 'monster' && entity.monster && entity.monster.hp > 0 && entity.monster.maxHp > 0) {
-        const offset = actorOffset(scene, entity, scene.animation?.entities?.get(entity.id));
-        const point = camera.worldToScreen(entity.x + offset.x, entity.y + offset.y);
-        const width = Math.round(tile * 0.625);
-        const height = Math.max(2, Math.floor(tile / 16));
-        const fraction = Math.max(0, Math.min(1, entity.monster.hp / entity.monster.maxHp));
-        const x = point.x + (tile - width) / 2;
-        const y = point.y - height - 1;
-        ctx.fillStyle = '#151a20';
-        ctx.fillRect(x - 1, y - 1, width + 2, height + 2);
-        ctx.fillStyle = fraction > 0.5 ? '#80b879' : fraction > 0.25 ? '#e5bd62' : '#d66b65';
-        ctx.fillRect(x, y, Math.round(width * fraction), height);
       }
     } else if (scene.sense && entity.kind === 'monster' && scene.seen[idx(entity.x, entity.y)]) {
       marker(ctx, camera, entity.x, entity.y, SENSE_MONSTER, 0.4);
@@ -371,6 +365,10 @@ export function renderFrame(
   } else {
     marker(ctx, camera, scene.player.x, scene.player.y, PLAYER_COLOR, 0.6);
   }
+  // Keep hazard corners visible even while the hero stands on the trap.
+  for (const trap of scene.level.traps ?? []) {
+    if (trap.known) drawTrap(ctx,camera,trap,true);
+  }
   const projectile = overlay?.projectile;
   if (projectile && Number.isFinite(projectile.progress)) {
     const progress = Math.max(0, Math.min(1, projectile.progress));
@@ -394,6 +392,24 @@ export function renderFrame(
     }
   }
   if (overlay?.feedback) drawActionFeedback(ctx,camera,overlay.feedback.cues,scene.visible,overlay.feedback.progress);
+  // Draw bars last so the hero, other actors, and action effects cannot cover them.
+  for (const entity of scene.entities ?? []) {
+    if (!scene.visible[idx(entity.x, entity.y)]) continue;
+      if (entity.kind === 'monster' && entity.monster && entity.monster.hp > 0 && entity.monster.maxHp > 0) {
+        const offset = actorOffset(scene, entity, scene.animation?.entities?.get(entity.id));
+        const point = camera.worldToScreen(entity.x + offset.x, entity.y + offset.y);
+        const width = Math.round(tile * 0.625);
+        const height = Math.max(2, Math.floor(tile / 16));
+        const fraction = Math.max(0, Math.min(1, entity.monster.hp / entity.monster.maxHp));
+        const x = point.x + (tile - width) / 2;
+        const y = point.y + tile - Math.round(tile * creatureAppearance(entity.name).scale) + 2;
+        ctx.fillStyle = '#151a20';
+        ctx.fillRect(x - 1, y - 1, width + 2, height + 2);
+        ctx.fillStyle = fraction > 0.5 ? '#80b879' : fraction > 0.25 ? '#e5bd62' : '#d66b65';
+        ctx.fillRect(x, y, Math.round(width * fraction), height);
+      }
+  }
+
 }
 
 export interface Renderer {

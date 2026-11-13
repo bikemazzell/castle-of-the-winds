@@ -38,13 +38,16 @@ The `dist/` directory contains the static site. The build supports hosting benea
 - Click a spell shortcut, then click a visible target. Self spells cast with one click.
 - Pin favorite spells in the spellbook. Without favorites, the bar shows up to six learned spells.
 - Press F to choose a ranged weapon. Click a visible enemy to fire.
-- Press T to talk or inspect nearby objects. Actions also contains these commands.
+- Press T to talk or inspect nearby objects.
+- Open Actions for a persistent panel with icons and labels. Wait is inside this panel.
+- Use Wait, Search, or Disarm without reopening Actions. The map stays usable while the panel is open.
 - Press Escape to pause. The pause menu provides saves, preferences, help, and Debug controls.
 - Use Debug to reveal the map, change character values, and edit gold or inventory.
 - Use the map controls to zoom and return the view to the hero.
 
 The hero moves smoothly between tiles. The camera follows near the edge of the safe viewing area.
-Combat shows attack, hit, and miss effects. Small health bars appear above visible enemies. Interactions show a brief pulse.
+Combat shows attack, hit, and miss effects. Enemy health bars sit inside their tiles and remain visible beneath neighboring characters.
+Mice, rats, insects, humanoids, giants, and dragons use different sizes. Interactions show a brief pulse.
 Living creatures have idle motion. Equipped items change the hero appearance.
 Terrain has coordinate-based variation, moving foliage, and water ripples.
 Dungeon torches cast local light. Outdoor daylight uses game time, which advances through actions and rest.
@@ -70,7 +73,18 @@ Dreamcap also tints the visible map. These effects survive saves and expire as g
 Magic shops sell scrolls for Mandatory Bedtime, Urgent Paperwork, and Borrowed Sunshine.
 General stores sell underwear dyes and helmet polish. These change the hero sprite without changing character values.
 
-Reduced motion disables animation. Blood, debris, and chatter have separate controls in the pause preferences.
+Discovered traps have distinct icons and amber corner marks. Hover over a marker to read its trap type.
+Detect Traps shows known locations through fog without revealing surrounding terrain. Unknown traps stay hidden.
+Use Disarm in Actions for a known adjacent trap. Successful disarming removes the marker and flashes green.
+Triggered traps flash red and remain marked because they can trigger again.
+
+Blood and Gore adds larger fight splashes, lasting floor stains, and trails from wounded actors at half health or less.
+Creature type determines whether an effect uses blood, ichor, or debris. Stains stay on the current floor until newer effects replace them.
+Reduced motion keeps static stains but disables animated splashes. Turning off Blood and Gore hides all of these effects.
+
+Curses enables frequent, explicit player swearing after hits, traps, surprises, and kills. It defaults to Off.
+Curses also changes player comments during search, trade, and idle time. It works independently of ordinary character chatter.
+Each action adds at most one swear line. Combat results and automatic rest/search messages remain in the log.
 
 Part One follows the Mine and Fortress campaign. Part Two continues the journey and supports importing a Part One character.
 Every Part Two castle floor has return stairs. Magic shops sell scrolls that teach character spells.
@@ -96,6 +110,8 @@ npm run e2e:release
 npm run e2e:campaign
 npm run e2e:campaign2
 npm run e2e:expansion
+npm run e2e:traps
+npm run e2e:effects
 ```
 
 Campaign browser tests include assisted phases with edited characters. They do not establish full-campaign balance.

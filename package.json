@@ -24,7 +24,9 @@
     "e2e:campaign2": "tsx tools/e2e/run-campaign2.ts",
     "ui-review": "tsx tools/e2e/run-ui-review.ts",
     "e2e:release": "tsx tools/e2e/run-release.ts",
-    "e2e:expansion": "tsx tools/e2e/run-expansion.ts"
+    "e2e:expansion": "tsx tools/e2e/run-expansion.ts",
+    "e2e:traps": "tsx tools/e2e/run-traps.ts",
+    "e2e:effects": "tsx tools/e2e/run-effects.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

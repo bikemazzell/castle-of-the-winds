@@ -1,3 +1,7 @@
+import { curseLine, type CurseContext } from '../engine/curses';
+import { createActionPalette, type ActionPalette } from './ui/action-palette';
+import { findDisarmTarget, trapAt } from '../engine/traps';
+import { TRAP_NAMES } from './render/trap-art';
 import { rangedProfile } from '../engine/ranged';
 import { placeShopkeeper, PROP_NAMES } from '../engine/encounters';
 import { chatterLine, type ChatterContext } from '../engine/chatter';
@@ -8,7 +12,7 @@ import { movementPosition, continueMovement, MOVE_DURATION_MS } from './render/m
 import { createAmbient } from './render/ambient';
 import { createEnvironmentCache, daylight } from './render/environment';
 import { createHeroCache, heroAppearance } from './render/hero-art';
-import { createImpactStore, damageImpacts, type DamageActor } from './render/impacts';
+import { createImpactStore, damageImpacts, movementBlood, type DamageActor } from './render/impacts';
 /**
  * Game controller: the glue between the engine (world/dispatch), the shell
  * (HUD/map/sheet), the canvas renderer, and the dialog suite. Owns the
@@ -180,6 +184,7 @@ export function createGameController(deps: ControllerDeps): GameController {
 
   const shell: Shell = createShell(deps.root);
   let hud: Hud;
+  let actionPalette: ActionPalette | null = null;
   const canvas = shell.mapEl.querySelector('canvas') as HTMLCanvasElement;
   let world: World | null = null;
   let dead = false;
@@ -230,7 +235,7 @@ export function createGameController(deps: ControllerDeps): GameController {
   let preferences = loadPreferences(prefsStorage);
   /** Brief cast feedback (UI plan Phase 6): affected cells + fade window. */
   let projectile: {from:Cell;to:Cell;start:number}|null = null;
-  let flash: { cells: { x: number; y: number }[]; start: number; durationMs: number } | null = null;
+  let flash: { cells: { x: number; y: number }[]; start: number; durationMs: number; color?:string } | null = null;
   /** Onboarding hints (UI plan Phase 7): shown once after a fresh game's story. */
   let hintsPending = false;
   let hintEl: HTMLElement | null = null;
@@ -796,8 +801,10 @@ export function createGameController(deps: ControllerDeps): GameController {
   const say = (context:ChatterContext,speaker?:string): string | null => {
     const w = world;
     const now = (deps.now ?? Date.now)();
-    if (!w || preferences.chatter === false || now-lastChatter < 12000) return null;
-    const line = chatterLine(w.worldSeed,w.turn+chatterSequence++,context,speaker ?? w.player.name);
+    if (!w || now-lastChatter < 12000) return null;
+    const foul=preferences.curses===true && (!speaker || speaker===w.player.name);
+    if (!foul && preferences.chatter === false) return null;
+    const line = foul ? curseLine(w.worldSeed,chatterSequence++,context,w.player.name) : chatterLine(w.worldSeed,w.turn+chatterSequence++,context,speaker ?? w.player.name);
     if (line === lastChatterText) return null;
     lastChatter = now;
     lastChatterText = line;
@@ -938,27 +945,9 @@ export function createGameController(deps: ControllerDeps): GameController {
     openModal({ title: 'Save / Load', content });
   };
 
-  /** Gameplay command dock panel (UI plan §4: Actions). */
   const openActionsPanel = (): void => {
     if (!world || dead) return;
-    const content = doc.createElement('div');
-    content.className = 'menu-list';
-    const rows: Array<[string, string, () => void]> = [
-      ['Fire / throw (F)', 'fire', () => { closeAllModals(); openFire(); }],
-      ['Talk / inspect nearby (T)', 'interact', () => { closeAllModals(); openNearby(); }],
-      ['Search · 1 turn (X)', 'search', () => { closeAllModals(); dispatchAction({ type: 'SEARCH' }); }],
-      ['Rest · time passes', 'rest', () => { closeAllModals(); openRest(); }],
-      ['Journal', 'journal', () => { closeAllModals(); openJournalDialog(world?.questState?.journal ?? []); }],
-    ];
-    for (const [label, action, fn] of rows) {
-      const btn = doc.createElement('button');
-      btn.type = 'button';
-      btn.textContent = label;
-      btn.dataset.action = action;
-      btn.addEventListener('click', fn);
-      content.appendChild(btn);
-    }
-    openModal({ title: 'Actions', content });
+    actionPalette?.toggle();
   };
 
   /** Expanded message log (A16: the sheet shows only the latest line). */
@@ -1112,6 +1101,7 @@ export function createGameController(deps: ControllerDeps): GameController {
    * leave hidden movement or a half-finished cast active (UI plan Phase 7).
    */
   const cancelPendingCommands = (reason: string): void => {
+    actionPalette?.hide();
     turnMotion = null;
     actionFeedback=null;
     impacts.clear();
@@ -1408,6 +1398,7 @@ export function createGameController(deps: ControllerDeps): GameController {
     const levelBefore = w.player.level;
     const currentBefore = w.current;
     const manaBefore = w.player.mana;
+    const experienceBefore=w.player.experience;
     const hpBefore = w.player.hp;
     const before = { x: w.player.x, y: w.player.y };
     const beforeEntities = new Map([...w.levels.get(w.current)?.entities.values() ?? []]
@@ -1416,19 +1407,26 @@ export function createGameController(deps: ControllerDeps): GameController {
     const bumped = action.type === 'MOVE' && [...beforeEntities.values()]
       .some(e => e.x === before.x + action.dx && e.y === before.y + action.dy);
     const damageSnapshot = ():DamageActor[] => [
-      {id:0,name:'hero',x:w.player.x,y:w.player.y,hp:w.player.hp,visible:true},
-      ...[...w.levels.get(w.current)?.entities.values() ?? []].filter(e=>e.monster).map(e=>({id:e.id,name:e.name,x:e.x,y:e.y,hp:e.monster!.hp,visible:!!w.visible[idx(e.x,e.y)]})),
+      {id:0,name:'hero',x:w.player.x,y:w.player.y,hp:w.player.hp,maxHp:w.player.maxHp,level:w.current,visible:true},
+      ...[...w.levels.get(w.current)?.entities.values() ?? []].filter(e=>e.monster).map(e=>({id:e.id,name:e.name,x:e.x,y:e.y,hp:e.monster!.hp,maxHp:e.monster!.maxHp,level:w.current,visible:!!w.visible[idx(e.x,e.y)]})),
     ];
     const damageBefore = damageSnapshot();
     const previousMotion=turnMotion;
     const previousProgress=previousMotion?((deps.now??Date.now)()-previousMotion.start)/TURN_MOTION_MS:1;
     const turnBefore=w.turn;
+    const trapLevel=w.levels.get(w.current);
+    const trapTarget=action.type==='DISARM' ? findDisarmTarget(w,action.x,action.y) : action.type==='MOVE' ? {x:w.player.x+action.dx,y:w.player.y+action.dy} : null;
+    const relevantTrap=trapLevel && trapTarget ? trapAt(trapLevel,trapTarget.x,trapTarget.y) : null;
+    const previousLogEntry=w.log.at(-1);
     if (automatic) w.log.push({ turn: w.turn, text: action.type === 'REST' ? 'Auto rest: you settle down to recover.' : 'Auto search: you inspect your surroundings.' });
     const combat=captureCombat(w,()=>dispatch(w,action)).events;
     const cues:ActionCue[]=combat.filter(cue=>(cue.attacker.id===0||beforeEntities.has(cue.attacker.id))&&(cue.target.id===0||beforeEntities.has(cue.target.id))).map(cue=>({kind:'attack',from:{x:cue.attacker.x,y:cue.attacker.y},at:{x:cue.target.x,y:cue.target.y},hit:cue.hit}));
     if(cues.length&&!prefersReducedMotion())actionFeedback={start:(deps.now??Date.now)(),cues};
     else if(w.turn!==turnBefore&&['SEARCH','USE','EQUIP','UNEQUIP','PICKUP','INTERACT'].includes(action.type))interactFeedback();
-    if (currentBefore === w.current && preferences.blood !== false) impacts.add(damageImpacts(damageBefore,damageSnapshot(),(deps.now??Date.now)()));
+    if (currentBefore === w.current && preferences.blood !== false) {
+      const damageAfter=damageSnapshot(),now=(deps.now??Date.now)();
+      impacts.add([...damageImpacts(damageBefore,damageAfter,now),...movementBlood(damageBefore,damageAfter,now)]);
+    }
     turnMotion = null;
     if (!prefersReducedMotion() && currentBefore === w.current) {
       let player: ActorMotion | undefined;
@@ -1472,8 +1470,29 @@ export function createGameController(deps: ControllerDeps): GameController {
       projectile = {from:before,to:action.target,start:(deps.now??Date.now)()};
       renderer?.markDirty();
     }
-    if (combat.length) say('combat');
-    else if (action.type === 'SEARCH' && w.turn !== turnBefore) say('search');
+    if (relevantTrap && trapLevel && currentBefore===w.current && w.turn!==turnBefore && !prefersReducedMotion()) {
+      const disarmed=!(trapLevel.traps ?? []).includes(relevantTrap);
+      const messages=w.log.slice(previousLogEntry ? w.log.indexOf(previousLogEntry)+1 : 0);
+      const sprung=messages.some(entry=>/set off the trap|trigger a teleport trap|fall through a trap door/.test(entry.text));
+      if(disarmed || sprung)flash={cells:[{x:relevantTrap.x,y:relevantTrap.y}],start:(deps.now??Date.now)(),durationMs:500,color:disarmed?'rgba(115,195,175,0.42)':'rgba(225,105,62,0.52)'};
+    }
+    let cursed=false;
+    if (preferences.curses && w.turn!==turnBefore) {
+      const messages=w.log.slice(previousLogEntry ? w.log.indexOf(previousLogEntry)+1 : 0);
+      const trapSprung=!!relevantTrap && messages.some(entry=>/set off the trap|trigger a teleport trap|fall through a trap door/.test(entry.text));
+      const killed=w.player.experience>experienceBefore && damageBefore.some(actor=>actor.id!==0 && !w.levels.get(currentBefore)?.entities.has(actor.id));
+      const surprise=action.type==='MOVE' && [...w.levels.get(w.current)?.entities.values() ?? []].some(e=>e.monster && w.visible[idx(e.x,e.y)] && !beforeEntities.has(e.id));
+      const context:CurseContext|undefined=trapSprung?'trap':killed?'victory':w.player.hp<hpBefore?'hurt':surprise?'surprised':combat.length?'combat':action.type==='SEARCH'?'search':undefined;
+      if(context){
+        let line=curseLine(w.worldSeed,chatterSequence++,context,w.player.name);
+        if(line===lastChatterText)line=curseLine(w.worldSeed,chatterSequence++,context,w.player.name);
+        w.log.push({turn:w.turn,text:line});
+        if(w.log.length>500)w.log.splice(0,w.log.length-500);
+        lastChatterText=line;lastChatter=(deps.now??Date.now)();cursed=true;
+      }
+    }
+    if (!cursed && combat.length) say('combat');
+    else if (!cursed && action.type === 'SEARCH' && w.turn !== turnBefore) say('search');
     afterAction(action, levelBefore);
     // Urgent events only (UI plan §382): damage, death, level-up reach the
     // assertive region; routine movement never rewrites the live region.
@@ -1808,8 +1827,11 @@ export function createGameController(deps: ControllerDeps): GameController {
       case 'interact': openNearby(); break;
       case 'search': dispatchAction({ type: 'SEARCH' }); break;
       case 'rest': openRest(); break;
+      case 'disarm': dispatchAction({type:'DISARM'}); break;
+      case 'journal': openJournalDialog(world.questState?.journal ?? []); break;
       case 'map': openMap(); break;
       case 'menu': // keyboard Esc: stop travel first; a second Esc pauses (UI plan §4)
+        if (actionPalette?.isOpen()) { actionPalette.hide(); return; }
         if (travelRunner?.state.active) {
           travelRunner.stop('new map interaction');
           return;
@@ -1879,7 +1901,9 @@ export function createGameController(deps: ControllerDeps): GameController {
         ? [...level.entities.values()].find(e => e.x === cell.x && e.y === cell.y) : undefined;
       const tile = cell && seen[idx(cell.x, cell.y)] ? level.tiles[idx(cell.x, cell.y)] : undefined;
       const stairs = tile === TILE_STAIRS_UP ? 'Stairs up' : tile === TILE_STAIRS_DOWN ? 'Stairs down' : '';
-      inspect.textContent = actor ? `${actor.name} · ${actor.kind === 'monster' ? 'Enemy' : 'Character'}` : stairs;
+      const trap=cell ? level.traps?.find(t=>t.known && t.x===cell.x && t.y===cell.y) : undefined;
+      const subject=actor ? `${actor.name} · ${actor.kind === 'monster' ? 'Enemy' : 'Character'}` : stairs;
+      inspect.textContent=[subject,trap ? `${TRAP_NAMES[trap.kind]} · active` : ''].filter(Boolean).join(' · ');
       inspect.hidden = !inspect.textContent;
     }
     const hero = { x: w.player.x, y: w.player.y };
@@ -1908,7 +1932,7 @@ export function createGameController(deps: ControllerDeps): GameController {
         : undefined;
     const base = targetingOverlay ?? routeOverlay;
     // Cast feedback fades over FLASH_DURATION_MS; keep dirty while animating.
-    let flashOverlay: { cells: { x: number; y: number }[]; alpha: number } | undefined;
+    let flashOverlay: { cells: { x: number; y: number }[]; alpha: number; color?:string } | undefined;
     if (prefersReducedMotion()) flash = null;
     if (flash) {
       const elapsed = (deps.now ?? Date.now)() - flash.start;
@@ -1916,7 +1940,7 @@ export function createGameController(deps: ControllerDeps): GameController {
         flash = null;
         projectile = null;
       } else {
-        flashOverlay = { cells: flash.cells, alpha: 1 - elapsed / flash.durationMs };
+        flashOverlay = { cells: flash.cells, alpha: 1 - elapsed / flash.durationMs, color:flash.color };
         renderer?.markDirty();
       }
     }
@@ -2094,7 +2118,8 @@ export function createGameController(deps: ControllerDeps): GameController {
         return;
       }
       panel?.refresh({ inv: cur.inventory, player: cur.player, gold: cur.inventory.gold });
-      const line = say('barter', chatterSequence % 2 ? cur.player.name : shop.name);
+      const playerSpeaks = (preferences.curses === true && preferences.chatter === false) || chatterSequence % 2 === 1;
+      const line = say('barter', playerSpeaks ? cur.player.name : shop.name);
       if (line && panel) {
         let banter = panel.el.querySelector<HTMLElement>('[data-field=merchant-banter]');
         if (!banter) { banter=doc.createElement('p'); banter.dataset.field='merchant-banter'; panel.el.prepend(banter); }
@@ -2275,6 +2300,18 @@ export function createGameController(deps: ControllerDeps): GameController {
         [],
       );
       mountSheetControls(hud, shell.sheetEl);
+      actionPalette=createActionPalette({onAction:routeCommand});
+      actionPalette.el.id='game-actions';
+      (shell.sheetEl.querySelector('.action-cluster') ?? shell.sheetEl).prepend(actionPalette.el);
+      const actionsButton=shell.sheetEl.querySelector<HTMLButtonElement>('.dock [data-action="actions"]');
+      actionsButton?.setAttribute('aria-controls','game-actions');
+      actionsButton?.setAttribute('aria-expanded','false');
+      actionPalette.el.addEventListener('toggle',()=>{
+        const open=actionPalette?.isOpen() ?? false;
+        actionsButton?.setAttribute('aria-expanded',String(open));
+        if(!open && actionPalette?.el.contains(doc.activeElement))actionsButton?.focus();
+        renderer?.markDirty();
+      });
       // Viewport owns camera state + view controls (Task 11c). Preferences
       // applied at construction could not reach it before creation — re-apply.
       camViewport = createViewport({
@@ -2369,6 +2406,8 @@ export function createGameController(deps: ControllerDeps): GameController {
       dead = false;
       // Debug globals belong to this controller instance only.
       devtools.detach();
+      actionPalette?.destroy();
+      actionPalette=null;
       deps.root.innerHTML = '';
       world = null;
     },

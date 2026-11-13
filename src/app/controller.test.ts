@@ -3524,3 +3524,14 @@ it('cleans direction selection when a modal opens, a new game begins, and the co
   window.dispatchEvent(new KeyboardEvent('keydown',{key:'d'}));
   expect(document.querySelector('.interaction-bar')).toBeNull();expect(w.turn).toBe(turn);
 });
+
+it('keeps Actions open after underfoot interaction and canceled direction selection',()=>{
+ const c=bootstrap();const w=beginGame(c);const level=w.levels.get(w.current)!;
+ level.entities.clear();level.occupancy.fill(0);level.props=[{id:'underfoot',kind:'bones',x:w.player.x,y:w.player.y,exhausted:false}];
+ root.querySelector<HTMLButtonElement>('[data-action="actions"]')!.click();
+ const palette=root.querySelector<HTMLElement>('.action-palette')!;
+ palette.querySelector<HTMLButtonElement>('[data-action="interact"]')!.click();
+ expect(level.props[0]!.exhausted).toBe(true);expect(palette.hidden).toBe(false);
+ palette.querySelector<HTMLButtonElement>('[data-action="interact"]')!.click();
+ window.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape'}));expect(palette.hidden).toBe(false);
+});

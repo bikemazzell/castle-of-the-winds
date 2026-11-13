@@ -803,7 +803,6 @@ export function createGameController(deps: ControllerDeps): GameController {
 
   const beginInteraction = (): void => {
     if (!world || dead) return;
-    actionPalette?.hide();
     travelRunner?.stop('interaction');
     endTargeting();
     endInteraction();
@@ -2208,9 +2207,9 @@ export function createGameController(deps: ControllerDeps): GameController {
       player: w.player,
       gold: w.inventory.gold,
       actions: {
-        onBuy: (defId: string): string | void => {
+        onBuy: (defId: string, count = 1): string | void => {
           const cur = world!;
-          const result = buyItem(cur, defId); // quote === transaction (A23), reject-before-mutate (Task 6)
+          const result = buyItem(cur, defId, count); // quote === transaction (A23), reject-before-mutate (Task 6)
           if (!result.ok) return result.reason;
           afterAction();
         },

@@ -37,7 +37,7 @@ These entries describe this project's implementation. They do not establish that
 | Interaction | Interact uses an object underfoot first, then requests a direction key or adjacent map click without a modal. | `src/app/controller.ts` |
 | Brief messages | NPC replies and level gains appear in the log. Merchants open trade directly. Empty weapon guidance uses the log. | `src/app/controller.ts` |
 | Idle actions | Optional automatic rest and search have separate delays. They pause during interruptions and write to the log. | `src/app/controller.ts` |
-| Shopping | Purchases show receipts and require a new selection before another purchase. Sell All previews the sale and excludes equipped items. | `src/app/ui/merchant.ts` |
+| Shopping | Stackable items support quantities from 1 to 999, with minus/plus controls and a total price. Purchases show receipts and require a new selection before another purchase. Sell All previews the sale and excludes equipped items. | `src/app/ui/merchant.ts` |
 | Debug controls | A pause-menu editor can reveal maps and change character values, inventory, and gold. | `src/app/devtools.ts`, `src/app/editor/` |
 | Saves | Browser storage, separate campaign slots, autosaves, and file import/export replace original save handling. | `src/app/saves/`, `src/engine/save.ts` |
 | Campaign import | A living Part One character can enter Part Two. Import remaps known spells and starts fresh quest progress. | `src/app/import.ts` |

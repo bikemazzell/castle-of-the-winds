@@ -21,7 +21,7 @@ export interface ShopDef {
 }
 
 export interface MerchantPanelActions {
-  onBuy?: (defId: string) => string | void;
+  onBuy?: (defId: string, count?: number) => string | void;
   onSell?: (uid: string) => string | void;
   onIdentify?: (uid: string) => string | void;
   onHeal?: () => string | void;
@@ -50,6 +50,7 @@ export function createMerchantPanel(data: MerchantPanelData): MerchantPanel {
 
   let tab: 'buy' | 'sell' = 'buy';
   let selectedDefId: string | null = null;
+  let quantity = 1;
   let selectedUid: string | null = null;
   let purchasedDefId: string | null = null;
 
@@ -214,6 +215,7 @@ export function createMerchantPanel(data: MerchantPanelData): MerchantPanel {
           selected: selectedDefId === defId,
           onClick: () => {
             selectedDefId = defId;
+            quantity = 1;
             purchasedDefId = null;
             showNotice();
             render();
@@ -336,7 +338,7 @@ export function createMerchantPanel(data: MerchantPanelData): MerchantPanel {
     if (!selectedDefId) return;
     const def = current.defs[selectedDefId];
     if (!def) return;
-    const quote = buyCost(def);
+    let quote = buyCost(def, quantity);
     detailsHost.appendChild(itemDetails({ def, equipped: equippedDefFor(def) }));
     const btn = document.createElement('button');
     btn.type = 'button';
@@ -348,15 +350,54 @@ export function createMerchantPanel(data: MerchantPanelData): MerchantPanel {
       const receipt = document.createElement('p');
       receipt.setAttribute('role', 'status');
       receipt.className = 'merchant-receipt';
-      receipt.textContent = `Purchased ${def.name} for ${gold(quote.total)}. Select an item to buy again.`;
+      receipt.textContent = `Purchased ${def.name}${quantity > 1 ? ` ×${quantity}` : ''} for ${gold(quote.total)}. Select an item to buy again.`;
       detailsHost.appendChild(receipt);
+    }
+    let quantityInput: HTMLInputElement | undefined;
+    if (def.stackable) {
+      const controls = document.createElement('div');
+      controls.className = 'merchant-quantity';
+      const label = document.createElement('label');
+      label.textContent = 'Quantity';
+      quantityInput = document.createElement('input');
+      const input = quantityInput;
+      input.type = 'number'; input.min = '1'; input.max = '999'; input.step = '1';
+      input.value = String(quantity); input.dataset.field = 'buy-quantity';
+      label.appendChild(input);
+      const minus = document.createElement('button');
+      const plus = document.createElement('button');
+      minus.type = plus.type = 'button';
+      minus.textContent = '−'; plus.textContent = '+';
+      minus.dataset.action = 'quantity-minus'; plus.dataset.action = 'quantity-plus';
+      minus.setAttribute('aria-label', 'Decrease quantity'); plus.setAttribute('aria-label', 'Increase quantity');
+      const update = (): void => {
+        quantity = input.valueAsNumber;
+        const valid = Number.isInteger(quantity) && quantity >= 1 && quantity <= 999;
+        const purchased = purchasedDefId === def.id;
+        quote = buyCost(def, valid ? quantity : 1);
+        btn.disabled = purchased || !valid;
+        btn.textContent = purchased ? 'Purchased' : valid ? `Buy ×${quantity} — ${gold(quote.total)}` : 'Choose a quantity from 1 to 999';
+        btn.classList.toggle('unaffordable', valid && current.gold < quote.total);
+        minus.disabled = purchased || quantity <= 1;
+        plus.disabled = purchased || quantity >= 999;
+        input.disabled = purchased;
+      };
+      input.addEventListener('input', update);
+      for (const [button, delta] of [[minus, -1], [plus, 1]] as const) {
+        button.addEventListener('click', () => {
+          input.value = String(Math.max(1, Math.min(999, Number.isFinite(quantity) ? Math.floor(quantity) + delta : 1)));
+          update(); showNotice();
+        });
+      }
+      controls.append(minus, label, plus); detailsHost.appendChild(controls); update();
     }
     if (current.gold < quote.total) btn.classList.add('unaffordable');
     btn.addEventListener('click', () => {
       if (!selectedDefId || purchasedDefId === selectedDefId) return;
+      if (quantityInput && !quantityInput.checkValidity()) return;
       const id = selectedDefId;
       const affordable = current.gold >= quote.total;
-      const reason = actions?.onBuy?.(id);
+      const reason = actions?.onBuy?.(id, quantity);
       if (reason || !actions?.onBuy) {
         showNotice(reason ?? (affordable ? undefined : 'Not enough gold.'));
         return;

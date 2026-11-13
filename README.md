@@ -57,6 +57,7 @@ Optional idle rest and search use separate delays in Settings. Both default to O
 Automatic actions pause during dialogs, targeting, travel, focus loss, and visible enemy encounters.
 Rest advances one game hour. Search advances one turn. Both automatic actions write messages to the log.
 
+Stackable shop items have minus/plus buttons and a quantity field for buying 1–999 at once. The Buy button shows the total price.
 Shops show purchase receipts and require a new selection before another purchase.
 Sell All previews the pack contents and total price before confirmation. Equipped items stay with the hero.
 

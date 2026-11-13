@@ -51,6 +51,7 @@ async function saveSnapshot(page: Page, part: 1 | 2): Promise<SaveFile> {
   return JSON.parse(await page.evaluate(key => localStorage.getItem(key)!, slotKey(0,part))) as SaveFile;
 }
 async function mapPoint(page: Page, x: number, y: number): Promise<{x:number;y:number}> {
+  await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
   return page.evaluate((x,y) => {
     const camera=window.__cotw.camera()!;
     const rect=document.querySelector('canvas')!.getBoundingClientRect();
@@ -105,8 +106,19 @@ await runWith([], async close => {
     for (const id of ['x-bow','x-arrow','x-crossbow','x-bolt','x-hand-cannon','x-cannonball']) {
       assert.ok(await page.$(`[data-def-id="${id}"]`),`part ${part} catalog missing ${id}`);
     }
-    for (const id of ['x-bow','x-arrow','x-arrow']) {
+    for (const id of ['x-bow','x-arrow']) {
       await page.click(`[data-def-id="${id}"] .item-row-button`);
+      if (id === 'x-arrow') {
+        await page.click('[data-action="quantity-plus"]');
+        assert.equal(await page.$eval('[data-field="buy-quantity"]', el => (el as HTMLInputElement).value), '2');
+        await page.click('[data-action="quantity-minus"]');
+        assert.equal(await page.$eval('[data-field="buy-quantity"]', el => (el as HTMLInputElement).value), '1');
+        await page.click('[data-field="buy-quantity"]');
+        await page.keyboard.down('Control'); await page.keyboard.press('a'); await page.keyboard.up('Control');
+        await page.type('[data-field="buy-quantity"]', '20');
+        assert.match(await page.$eval('[data-field="primary-action"]', el => el.textContent), /240 Gold/);
+        await screenshot(page,`docs/e2e/expansion-part${part}-quantity.png`);
+      }
       await page.click('.merchant-panel [data-field="primary-action"]');
       await page.waitForFunction(() => document.querySelector('.merchant-receipt')?.textContent?.includes('Purchased'));
     }
@@ -114,8 +126,8 @@ await runWith([], async close => {
     await page.keyboard.press('Escape');
     console.log(`part ${part}: shopping complete`);
     const bought = await saveSnapshot(page,part);
-    assert.equal(bought.inventory.pack.find(i => i.defId === 'x-arrow')?.count,2);
-    assert.ok(bought.inventory.gold < 1000);
+    assert.equal(bought.inventory.pack.find(i => i.defId === 'x-arrow')?.count,20);
+    assert.equal(bought.inventory.gold,160);
 
     // ASSISTED arena, preserving the purchased equipment. Not a generated room.
     const arena = deserializeGame(bought,loadWorldData(part));
@@ -166,6 +178,7 @@ await runWith([], async close => {
     await page.keyboard.press('Enter');
     assert.equal(await page.evaluate(()=>window.__cotw.turn()),keyboardTurn+1,'focused target button casts exactly once');
     assert.equal(await page.evaluate(()=>window.__cotw.targeting().active),false);
+    await page.click('[data-action="actions"]');
     const talkTurn=await page.evaluate(()=>window.__cotw.turn());
     const talkPosition=await page.evaluate(()=>window.__cotw.position());
     await page.keyboard.press('t');
@@ -175,7 +188,9 @@ await runWith([], async close => {
     await page.keyboard.press('Escape');
     assert.equal(await page.$('.interaction-bar'),null);
     assert.equal(await page.evaluate(()=>window.__cotw.turn()),talkTurn);
-    await page.keyboard.press('t');await page.keyboard.press('s');
+    assert.equal(await page.$eval('.action-palette', el => (el as HTMLElement).hidden),false);
+    await page.click('.action-palette [data-action="interact"]');await page.keyboard.press('s');
+    assert.equal(await page.$eval('.action-palette', el => (el as HTMLElement).hidden),false);
     assert.equal(await page.$('.modal-overlay'),null);
     assert.deepEqual(await page.evaluate(()=>window.__cotw.position()),talkPosition);
     assert.equal(await page.evaluate(()=>window.__cotw.turn()),talkTurn+1);
@@ -188,7 +203,7 @@ await runWith([], async close => {
     const saved=await saveSnapshot(page,part);
     assert.ok(saved.levels['0']!.entities.find(e=>e.id===240)!.monster!.hp < 30,'ranged shot damages the foe');
     assert.equal(saved.inventory.gold,bought.inventory.gold+3,'traveler pays once');
-    assert.equal(saved.inventory.pack.find(i=>i.defId==='x-arrow')?.count,1,'shot spends one arrow');
+    assert.equal(saved.inventory.pack.find(i=>i.defId==='x-arrow')?.count,19,'shot spends one arrow');
     assert.equal(saved.inventory.pack.find(i=>i.defId==='x-bone')?.count,1,'search salvage is finite');
     assert.equal(saved.levels['0']!.props!.find(p=>p.id==='acceptance-bones')!.exhausted,true);
     assert.equal(saved.player.underwearColor,'purple');assert.equal(saved.inventory.equipment.helm?.color,'gold');
@@ -196,7 +211,10 @@ await runWith([], async close => {
     await page.reload({waitUntil:'load'});await page.click(`[data-part="${part}"]`);await page.click('[data-action="continue"]');
     await page.waitForFunction(()=>window.__cotw.position()!==null);
     await screenshot(page,`docs/e2e/expansion-part${part}-restored.png`);
-    await page.keyboard.press('t');await page.keyboard.press('s');await page.keyboard.press('x');
+    await page.click('[data-action="actions"]');
+    assert.equal(await page.$eval('.action-palette', el => (el as HTMLElement).hidden),false);
+    await page.click('.action-palette [data-action="interact"]');await page.keyboard.press('s');
+    assert.equal(await page.$eval('.action-palette', el => (el as HTMLElement).hidden),false);await page.keyboard.press('x');
     const reloaded=await saveSnapshot(page,part);
     assert.equal(reloaded.inventory.gold,saved.inventory.gold);assert.equal(reloaded.inventory.pack.find(i=>i.defId==='x-bone')?.count,1);
     assert.equal(reloaded.player.underwearColor,'purple');assert.equal(reloaded.inventory.equipment.helm?.color,'gold');

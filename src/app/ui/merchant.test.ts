@@ -88,7 +88,7 @@ describe('merchant panel (UI plan Phase 5)', () => {
     document.body.appendChild(panel.el);
     (panel.el.querySelector('.merchant-buy-list .item-row[data-def-id="i-armor"] button') as HTMLButtonElement).click();
     (panel.el.querySelector('[data-field="primary-action"]') as HTMLButtonElement).click();
-    expect(onBuy).toHaveBeenCalledWith('i-armor');
+    expect(onBuy).toHaveBeenCalledWith('i-armor', 1);
     // The controller refreshes after the purchase; the selection and tab survive.
     panel.refresh({ gold: 500 - 200 });
     expect(panel.el.querySelector('[data-mtab="buy"]')?.classList.contains('active')).toBe(true);
@@ -175,4 +175,24 @@ it('requires confirmation to sell all pack items and reports the total', () => {
   (panel.el.querySelector('[data-action="confirm-sell-all"]') as HTMLButtonElement).click();
   expect(onSell.mock.calls.map(c => c[0])).toEqual(inventory.pack.map(i => i.uid));
   expect(panel.el.querySelector('[role="status"]')?.textContent).toContain('Sold 3 items');
+});
+
+it('quotes and buys stack quantities, then prevents accidental repeat purchases',()=>{
+ const onBuy=vi.fn();const panel=createMerchantPanel({shop:{...stockShop(),stock:['i-potion','i-sword']},defs:defs(),gold:10000,actions:{onBuy}});
+ const select=(id:string)=>panel.el.querySelector<HTMLButtonElement>(`[data-def-id="${id}"] button`)!.click();
+ select('i-potion');
+ const input=()=>panel.el.querySelector<HTMLInputElement>('[data-field="buy-quantity"]')!;
+ expect(input()).not.toBeNull();expect(input().value).toBe('1');
+ panel.el.querySelector<HTMLButtonElement>('[data-action="quantity-plus"]')!.click();
+ expect(input().value).toBe('2');
+ panel.el.querySelector<HTMLButtonElement>('[data-action="quantity-minus"]')!.click();expect(input().value).toBe('1');
+ input().value='20';input().dispatchEvent(new Event('input'));
+ expect(panel.el.querySelector('[data-field="primary-action"]')!.textContent).toContain('3000 Gold');
+ panel.el.querySelector<HTMLButtonElement>('[data-field="primary-action"]')!.click();
+ expect(onBuy).toHaveBeenCalledWith('i-potion',20);
+ expect(panel.el.querySelector('.merchant-receipt')!.textContent).toContain('Potion ×20');
+ panel.el.querySelector<HTMLButtonElement>('[data-field="primary-action"]')!.click();expect(onBuy).toHaveBeenCalledTimes(1);
+ select('i-potion');expect(input().value).toBe('1');
+ input().value='0';input().dispatchEvent(new Event('input'));expect(panel.el.querySelector<HTMLButtonElement>('[data-field="primary-action"]')!.disabled).toBe(true);
+ select('i-sword');expect(input()).toBeNull();
 });

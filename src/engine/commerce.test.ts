@@ -236,3 +236,20 @@ describe('commerce identifyItem (CODE-QUALITY Task 6)', () => {
     if (!result.ok) expect(result.reason).toMatch(/unknown/i);
   });
 });
+
+it('buys a stack in one transaction and merges it with existing stock', () => {
+ const w=world({gold:2000});give(w,'i-potion',2);
+ expect(buyItem(w,'i-potion',5)).toEqual({ok:true,goldDelta:-750});
+ expect(w.inventory.gold).toBe(1250);expect(w.inventory.pack.find(i=>i.defId==='i-potion')?.count).toBe(7);
+});
+it('rejects invalid, unaffordable, and overweight quantities without partial purchases',()=>{
+ for(const count of [0,-1,1.5,NaN,Infinity,1000]){
+  const w=world({gold:100000});const before=JSON.stringify(w.inventory);
+  expect(buyItem(w,'i-potion',count).ok).toBe(false);expect(JSON.stringify(w.inventory)).toBe(before);
+ }
+ for(const [gold,strength,count] of [[200,50,2],[1000000,1,999]]){
+  const w=world({gold,strength});const before=JSON.stringify(w.inventory);
+  expect(buyItem(w,'i-potion',count).ok).toBe(false);expect(JSON.stringify(w.inventory)).toBe(before);
+ }
+ const w=world({gold:100000});expect(buyItem(w,'i-long-sword',2).ok).toBe(false);expect(w.inventory.pack).toHaveLength(0);
+});

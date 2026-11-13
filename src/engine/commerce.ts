@@ -18,16 +18,18 @@ function unknownItem(reason: string): CommerceResult {
 }
 
 /**
- * Buy one unit of `defId` at market price. Rejections (unknown definition,
+ * Buy `count` units of `defId` at market price. Rejections (unknown definition,
  * insufficient gold, over carry limit) leave gold and pack untouched.
  */
-export function buyItem(world: World, defId: string): CommerceResult {
+export function buyItem(world: World, defId: string, count = 1): CommerceResult {
   const def = world.data.items[defId];
   if (!def) return unknownItem(`unknown item definition '${defId}'`);
-  const quote = buyCost(def);
+  if (!Number.isInteger(count) || count < 1 || count > 999) return { ok: false, reason: 'Choose a whole quantity from 1 to 999.' };
+  if (!def.stackable && count !== 1) return { ok: false, reason: 'Buy this item one at a time.' };
+  const quote = buyCost(def, count);
   if (world.inventory.gold < quote.total) return { ok: false, reason: 'Not enough gold.' };
   try {
-    pickup(world.inventory, world.player, defId, world.data.items);
+    pickup(world.inventory, world.player, defId, world.data.items, count);
   } catch (err) {
     // pickup validated before mutating; surface the carry/registry reason.
     return unknownItem(err instanceof InventoryError || err instanceof Error ? err.message : 'Too heavy to carry.');

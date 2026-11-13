@@ -51,6 +51,7 @@ export function createMerchantPanel(data: MerchantPanelData): MerchantPanel {
   let tab: 'buy' | 'sell' = 'buy';
   let selectedDefId: string | null = null;
   let selectedUid: string | null = null;
+  let purchasedDefId: string | null = null;
 
   let current: MerchantPanelData = { ...data };
 
@@ -213,6 +214,8 @@ export function createMerchantPanel(data: MerchantPanelData): MerchantPanel {
           selected: selectedDefId === defId,
           onClick: () => {
             selectedDefId = defId;
+            purchasedDefId = null;
+            showNotice();
             render();
           },
         });
@@ -265,6 +268,68 @@ export function createMerchantPanel(data: MerchantPanelData): MerchantPanel {
       sellList.appendChild(row);
     }
     renderSellDetails();
+    if (current.inv?.pack.length && actions?.onSell) {
+      const all = document.createElement('button');
+      all.type = 'button';
+      all.dataset.action = 'sell-all';
+      all.textContent = 'Sell All from Pack…';
+      all.addEventListener('click', confirmSellAll);
+      detailsHost.appendChild(all);
+    }
+  }
+
+  function confirmSellAll(): void {
+    const items = (current.inv?.pack ?? []).map(item => ({ ...item }));
+    if (!items.length || !actions?.onSell) return;
+    const total = items.reduce((sum, item) => {
+      const def = current.defs[item.defId];
+      return sum + (def ? sellGain(def, shop.kind === 'junk' ? 'junk' : 'store', item.count).total : 0);
+    }, 0);
+    const count = items.reduce((sum, item) => sum + item.count, 0);
+    detailsHost.replaceChildren();
+    const summary = document.createElement('p');
+    summary.textContent = `Sell all ${count} items in your pack for ${gold(total)}? Equipped items stay with you.`;
+    const contents = document.createElement('p');
+    contents.className = 'merchant-sale-preview';
+    contents.textContent = items.map(item => `${current.defs[item.defId]?.name ?? item.defId} ×${item.count}`).join(', ');
+    const confirm = document.createElement('button');
+    confirm.type = 'button';
+    confirm.dataset.action = 'confirm-sell-all';
+    confirm.textContent = `Confirm sale — ${gold(total)}`;
+    const cancel = document.createElement('button');
+    cancel.type = 'button';
+    cancel.dataset.action = 'cancel-sell-all';
+    cancel.textContent = 'Cancel';
+    cancel.addEventListener('click', render);
+    let completed = false;
+    confirm.addEventListener('click', () => {
+      if (completed) return;
+      completed = true;
+      confirm.disabled = true;
+      // Sell exactly the previewed pack. Never include equipped items or new arrivals.
+      if (items.some(item => !current.inv?.pack.some(now => now.uid === item.uid && now.defId === item.defId && now.count === item.count))) {
+        render();
+        showNotice('Your pack changed. Review the sale again.');
+        return;
+      }
+      for (const item of items) {
+        const reason = actions.onSell?.(item.uid);
+        if (reason) {
+          render();
+          showNotice(reason);
+          return;
+        }
+      }
+      selectedUid = null;
+      render();
+      const receipt = document.createElement('p');
+      receipt.setAttribute('role', 'status');
+      receipt.className = 'merchant-receipt';
+      receipt.textContent = `Sold ${count} items for ${gold(total)}.`;
+      detailsHost.prepend(receipt);
+    });
+    detailsHost.append(summary, contents, confirm, cancel);
+    cancel.focus();
   }
 
   function renderBuyDetails(): void {
@@ -277,13 +342,28 @@ export function createMerchantPanel(data: MerchantPanelData): MerchantPanel {
     btn.type = 'button';
     btn.className = 'primary-action';
     btn.dataset.field = 'primary-action';
-    btn.textContent = `Buy — ${gold(quote.total)}`;
+    btn.disabled = purchasedDefId === def.id;
+    btn.textContent = btn.disabled ? 'Purchased' : `Buy — ${gold(quote.total)}`;
+    if (btn.disabled) {
+      const receipt = document.createElement('p');
+      receipt.setAttribute('role', 'status');
+      receipt.className = 'merchant-receipt';
+      receipt.textContent = `Purchased ${def.name} for ${gold(quote.total)}. Select an item to buy again.`;
+      detailsHost.appendChild(receipt);
+    }
     if (current.gold < quote.total) btn.classList.add('unaffordable');
     btn.addEventListener('click', () => {
-      if (selectedDefId) {
-        const reason = actions?.onBuy?.(selectedDefId);
-        showNotice(reason ?? (current.gold < quote.total ? 'Not enough gold.' : undefined));
+      if (!selectedDefId || purchasedDefId === selectedDefId) return;
+      const id = selectedDefId;
+      const affordable = current.gold >= quote.total;
+      const reason = actions?.onBuy?.(id);
+      if (reason || !actions?.onBuy) {
+        showNotice(reason ?? (affordable ? undefined : 'Not enough gold.'));
+        return;
       }
+      purchasedDefId = id;
+      showNotice();
+      render();
     });
     detailsHost.appendChild(btn);
   }

@@ -3186,3 +3186,54 @@ it('allows a fresh browser to open the backup import dialog',()=>{
  expect(button.disabled).toBe(false);button.click();
  expect(document.querySelector('.save-dialog input[type="file"]')).not.toBeNull();
 });
+
+it('runs configured idle actions only during unobstructed active play', () => {
+  vi.useFakeTimers();
+  try {
+    const c = bootstrap({ now: () => Date.now() });
+    const world = beginGame(c);
+    root.querySelector<HTMLButtonElement>('[data-action="pause"]')!.click();
+    document.querySelector<HTMLButtonElement>('[data-pause-action="settings"]')!.click();
+    for (const key of ['idleRestSeconds', 'idleSearchSeconds']) {
+      const select = document.querySelector<HTMLSelectElement>(`[data-option="${key}"]`)!;
+      select.value = '5'; select.dispatchEvent(new Event('change'));
+    }
+    expect(prefsStore.getItem('cotw.preferences')).toContain('"idleSearchSeconds":5');
+    const start = world.turn;
+    vi.advanceTimersByTime(6000);
+    expect(world.turn).toBe(start);
+    closeAllModals();
+    world.player.hp = world.player.maxHp - 2;
+    vi.advanceTimersByTime(5000);
+    expect(world.player.hp).toBe(world.player.maxHp);
+    const rested = world.turn;
+    vi.advanceTimersByTime(5000);
+    expect(world.turn).toBe(rested + 1);
+    window.dispatchEvent(new Event('blur'));
+    vi.advanceTimersByTime(10000);
+    expect(world.turn).toBe(rested + 1);
+    window.dispatchEvent(new Event('focus'));
+    vi.advanceTimersByTime(4999);
+    expect(world.turn).toBe(rested + 1);
+    c.destroy(); controller = null;
+  } finally { vi.useRealTimers(); }
+});
+
+it('Sell All clears the pack at the quoted price and preserves equipped items', () => {
+  const c = bootstrap();
+  const world = beginGame(c);
+  const def = Object.values(world.data.items).find(d => d.name === 'Club')!;
+  pickup(world.inventory, world.player, def.id, world.data.items);
+  pickup(world.inventory, world.player, def.id, world.data.items);
+  world.inventory.equipment.weapon = { uid: 'equipped-test', defId: def.id, count: 1 };
+  const expected = world.inventory.pack.reduce((sum, i) => sum + sellGain(world.data.items[i.defId]!, 'store', i.count).total, 0);
+  const before = world.inventory.gold;
+  c.openMerchant(loadTownShops().shops.gunnhild!);
+  document.querySelector<HTMLButtonElement>('[data-mtab="sell"]')!.click();
+  document.querySelector<HTMLButtonElement>('[data-action="sell-all"]')!.click();
+  expect(world.inventory.gold).toBe(before);
+  document.querySelector<HTMLButtonElement>('[data-action="confirm-sell-all"]')!.click();
+  expect(world.inventory.gold).toBe(before + expected);
+  expect(world.inventory.pack).toHaveLength(0);
+  expect(world.inventory.equipment.weapon?.uid).toBe('equipped-test');
+});

@@ -140,3 +140,39 @@ describe('merchant panel (UI plan Phase 5)', () => {
     expect(row?.textContent).toMatch(/Potion/);
   });
 });
+
+it('confirms a purchase and requires a new selection before buying again', () => {
+  const onBuy = vi.fn(() => { panel.refresh({ gold: 0 }); });
+  const panel = createMerchantPanel({ shop: stockShop(), defs: defs(), gold: 500, actions: { onBuy } });
+  const select = (): void => (panel.el.querySelector('[data-def-id="i-armor"] button') as HTMLButtonElement).click();
+  select();
+  const buy = panel.el.querySelector('[data-field="primary-action"]') as HTMLButtonElement;
+  buy.click();
+  buy.click();
+  expect(onBuy).toHaveBeenCalledTimes(1);
+  expect(panel.el.querySelector('[role="status"]')?.textContent).toContain('Purchased Leather Armor');
+  expect(panel.el.querySelector('[data-field="merchant-notice"]')?.textContent).toBe('');
+  expect((panel.el.querySelector('[data-field="primary-action"]') as HTMLButtonElement).disabled).toBe(true);
+  panel.refresh({ gold: 500 });
+  select();
+  (panel.el.querySelector('[data-field="primary-action"]') as HTMLButtonElement).click();
+  expect(onBuy).toHaveBeenCalledTimes(2);
+});
+
+it('requires confirmation to sell all pack items and reports the total', () => {
+  const inventory = inv();
+  const onSell = vi.fn<(uid: string) => void>();
+  const panel = createMerchantPanel({ shop: stockShop(), defs: defs(), inv: inventory, gold: 0, actions: { onSell } });
+  (panel.el.querySelector('[data-mtab="sell"]') as HTMLButtonElement).click();
+  const all = panel.el.querySelector('[data-action="sell-all"]') as HTMLButtonElement;
+  expect(all).not.toBeNull();
+  all.click();
+  expect(onSell).not.toHaveBeenCalled();
+  expect(panel.el.textContent).toContain('3 items');
+  (panel.el.querySelector('[data-action="cancel-sell-all"]') as HTMLButtonElement).click();
+  expect(onSell).not.toHaveBeenCalled();
+  (panel.el.querySelector('[data-action="sell-all"]') as HTMLButtonElement).click();
+  (panel.el.querySelector('[data-action="confirm-sell-all"]') as HTMLButtonElement).click();
+  expect(onSell.mock.calls.map(c => c[0])).toEqual(inventory.pack.map(i => i.uid));
+  expect(panel.el.querySelector('[role="status"]')?.textContent).toContain('Sold 3 items');
+});

@@ -1328,3 +1328,14 @@ input[type='radio'], input[type='checkbox'] { accent-color: var(--accent); width
   .editor-row:has(> input[type='checkbox']) { flex-wrap: nowrap; }
   .editor-row:has(> input[type='checkbox']) > span:first-child { flex-basis: auto; }
 }
+
+/* Gold actions keep their contrast when the shared hover rule applies. */
+button:is(.primary-action, .begin-btn, .story-continue, .editor-tab.active):hover:not(:disabled),
+.title-buttons [data-action='new-game']:hover:not(:disabled),
+.target-bar [data-action='cast-target']:hover:not(:disabled) {
+  background-color: #eed093;
+  color: #14100a;
+}
+.merchant-receipt { color: var(--accent); margin: var(--gap-8) 0; }
+
+.merchant-sale-preview { max-height: 8rem; overflow-y: auto; }

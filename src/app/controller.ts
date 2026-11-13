@@ -1,3 +1,4 @@
+import { createIdleActions } from './idle';
 import { captureCombat } from '../engine/combat-feedback';
 import type { ActionCue } from './render/action-feedback';
 import { movementPosition, continueMovement, MOVE_DURATION_MS } from './render/movement';
@@ -188,6 +189,12 @@ export function createGameController(deps: ControllerDeps): GameController {
   let renderer: Renderer | null = null;
   /** Set by destroy(): late async callbacks (art loads) check this. */
   let destroyed = false;
+  const idleActions = createIdleActions();
+  let idleTimer: number | undefined;
+  let idleFocused = true;
+  const idleActivity = (): void => idleActions.activity((deps.now ?? Date.now)());
+  const idleBlur = (): void => { idleFocused = false; idleActivity(); };
+  const idleFocus = (): void => { idleFocused = true; idleActivity(); };
   /** Viewport owns camera state + view controls (zoom/pan/pinch/wheel,
    *  map buttons, resize + dpr watching). Created in start() with the shell. */
   let camViewport: Viewport | null = null;
@@ -1285,7 +1292,8 @@ export function createGameController(deps: ControllerDeps): GameController {
 
   // e2e observability: increments for every action the engine actually applied.
   let appliedCount = 0;
-  const dispatchAction = (action: Action): void => {
+  const dispatchAction = (action: Action, automatic = false): void => {
+    if (!automatic) idleActivity();
     const w = world;
     if (!w || dead) return;
     const levelBefore = w.player.level;
@@ -2095,6 +2103,7 @@ export function createGameController(deps: ControllerDeps): GameController {
   };
 
   const onVisibility = (): void => {
+    idleActivity();
     refreshGate();
     if (doc.hidden) {
       actionFeedback=null;
@@ -2147,6 +2156,17 @@ export function createGameController(deps: ControllerDeps): GameController {
       stopOrientation = watchOrientation((portrait) => applyOrientation(shell.el, portrait), win);
       win?.addEventListener('cotw:modal', onModalEvent);
       doc.addEventListener('visibilitychange', onVisibility);
+      for (const event of ['pointerdown', 'keydown', 'wheel']) doc.addEventListener(event, idleActivity, true);
+      win?.addEventListener('blur', idleBlur);
+      win?.addEventListener('focus', idleFocus);
+      idleActivity();
+      idleTimer = win?.setInterval(() => {
+        const w = world;
+        const blocked = destroyed || !idleFocused || doc.hidden || phase() !== 'playing' || openModalCount() > 0 || !!travelRunner?.state.active || !w || monsterInSight(w);
+        const needsRest = !!w && (w.player.hp < w.player.maxHp || w.player.mana < w.player.maxMana);
+        const action = idleActions.tick((deps.now ?? Date.now)(), preferences, blocked, needsRest);
+        if (action) dispatchAction(action === 'REST' ? { type: 'REST', hours: 1 } : { type: 'SEARCH' }, true);
+      }, 250);
       mountTitle();
     },
 
@@ -2170,6 +2190,10 @@ export function createGameController(deps: ControllerDeps): GameController {
 
     destroy(): void {
       destroyed = true;
+      if (idleTimer !== undefined) win?.clearInterval(idleTimer);
+      for (const event of ['pointerdown', 'keydown', 'wheel']) doc.removeEventListener(event, idleActivity, true);
+      win?.removeEventListener('blur', idleBlur);
+      win?.removeEventListener('focus', idleFocus);
       ambient.destroy();
       motionMedia?.removeEventListener?.('change',onMotionPreference);
       impacts.clear();

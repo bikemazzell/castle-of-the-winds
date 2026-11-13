@@ -43,6 +43,13 @@ Combat shows attack, hit, and miss effects. Interactions show a brief pulse.
 Living creatures have idle motion. Equipped items change the hero appearance.
 Terrain has coordinate-based variation, moving foliage, and water ripples.
 Dungeon torches cast local light. Outdoor daylight uses game time, which advances through actions and rest.
+Optional idle rest and search use separate delays in Settings. Both default to Off.
+Automatic actions pause during dialogs, targeting, travel, focus loss, and visible enemy encounters.
+Rest advances one game hour. Search advances one turn.
+
+Shops show purchase receipts and require a new selection before another purchase.
+Sell All previews the pack contents and total price before confirmation. Equipped items stay with the hero.
+
 Reduced motion disables animation. Blood and debris can be disabled in the pause preferences.
 
 Part One follows the Mine and Fortress campaign. Part Two continues the journey and supports importing a Part One character.

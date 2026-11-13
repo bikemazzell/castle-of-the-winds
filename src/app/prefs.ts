@@ -25,6 +25,8 @@ export interface GamePreferences {
   reduceMotion: ReduceMotionPref;
   safeConfirmation: boolean;
   blood?: boolean;
+  idleRestSeconds?: number;
+  idleSearchSeconds?: number;
 }
 
 const TEXT_SCALES: readonly number[] = [1, 1.25, 1.5, 1.75, 2];
@@ -72,6 +74,8 @@ export function loadPreferences(storage: PreferenceStorage): GamePreferences {
     reduceMotion: clampReduceMotion(p.reduceMotion),
     safeConfirmation: p.safeConfirmation === true,
     blood: p.blood !== false,
+    ...([5, 15, 30].includes(p.idleRestSeconds as number) ? { idleRestSeconds: p.idleRestSeconds as number } : {}),
+    ...([5, 15, 30].includes(p.idleSearchSeconds as number) ? { idleSearchSeconds: p.idleSearchSeconds as number } : {}),
   };
 }
 

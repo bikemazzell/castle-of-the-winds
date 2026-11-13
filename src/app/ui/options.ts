@@ -135,6 +135,32 @@ export function buildPreferencesContent(data: PreferencesDialogData): HTMLElemen
     ),
   );
 
+  for (const [key, label, hint] of [
+    ['idleRestSeconds', 'Idle: auto rest', 'Rest one game hour when hurt or low on mana. Pauses near enemies.'],
+    ['idleSearchSeconds', 'Idle: auto search', 'Search nearby tiles while idle. Each search advances a turn.'],
+  ] as const) {
+    const row = document.createElement('label');
+    row.className = 'option-row';
+    row.textContent = `${label} `;
+    const select = document.createElement('select');
+    select.dataset.option = key;
+    for (const seconds of [0, 5, 15, 30]) {
+      const option = document.createElement('option');
+      option.value = String(seconds);
+      option.textContent = seconds ? `After ${seconds} seconds` : 'Off';
+      select.append(option);
+    }
+    select.value = String(current[key] ?? 0);
+    select.addEventListener('change', () => {
+      current = { ...current, [key]: Number(select.value) };
+      emit();
+    });
+    const help = document.createElement('small');
+    help.textContent = hint;
+    row.append(select, document.createElement('br'), help);
+    el.append(row);
+  }
+
   const confirmRow = document.createElement('label');
   confirmRow.className = 'option-row';
   const box = document.createElement('input');

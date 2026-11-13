@@ -154,11 +154,21 @@ describe('MOVE', () => {
     expect(w.turn).toBe(0);
   });
 
-  it('diagonal moves are not allowed (original is 4-directional)', () => {
+  it('a diagonal step moves one cell on both axes and costs one turn', () => {
     const w = newWorld();
     dispatch(w, { type: 'MOVE', dx: 1, dy: 1 });
-    expect(w.player.x).toBe(3);
-    expect(w.turn).toBe(0);
+    expect([w.player.x, w.player.y]).toEqual([4, 4]);
+    expect(w.turn).toBe(1);
+  });
+
+  it('cannot move diagonally through a wall corner or past a blocking creature', () => {
+    for (const obstacle of ['wall', 'creature']) {
+      const w = newWorld(), level = w.levels.get(0)!;
+      if (obstacle === 'wall') level.tiles[idx(4, 3)] = 0;
+      else level.occupancy[idx(4, 3)] = 9;
+      dispatch(w, { type: 'MOVE', dx: 1, dy: 1 });
+      expect([w.player.x, w.player.y, w.turn]).toEqual([3, 3, 0]);
+    }
   });
 
   it('rejects multi-cell, fractional and non-finite deltas without side effects (F11, Task 7)', () => {
@@ -166,7 +176,6 @@ describe('MOVE', () => {
       [2, 0], [-2, 0], [0, 2], [0, -3], // strides
       [0.5, 0], [1, 0.25], // fractional
       [Number.NaN, 0], [0, Number.POSITIVE_INFINITY], // non-finite
-      [1, 1], [-1, 1], // diagonals (4-directional world)
       [0, 0], // zero-length
     ];
     for (const [dx, dy] of bad) {

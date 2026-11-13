@@ -122,9 +122,9 @@ describe('game input', () => {
     expect(onMove).toHaveBeenCalledWith(1, 0);
   });
 
-  it('diagonal keys no longer move (CODE-QUALITY Task 7)', () => {
+  it('unassigned letter keys do not move', () => {
     const { onMove } = setup();
-    for (const key of ['q', 'e', 'z', '1', '3', '7', '9']) {
+    for (const key of ['q', 'e', 'z']) {
       window.dispatchEvent(keyEvent(key));
     }
     expect(onMove).not.toHaveBeenCalled();
@@ -205,8 +205,8 @@ describe('mapKey', () => {
     expect(mapKey('?')).toBeNull();
   });
 
-  it('diagonal keys return null after cardinal alignment (Task 7)', () => {
-    for (const key of ['q', 'e', 'z', '1', '3', '7', '9']) {
+  it('unassigned letter keys return null', () => {
+    for (const key of ['q', 'e', 'z']) {
       expect(mapKey(key)).toBeNull();
     }
   });
@@ -247,4 +247,13 @@ it('leaves native Enter and Space activation on controls to the browser', () => 
   window.dispatchEvent(keyEvent('Enter'));
   expect(onCommand).toHaveBeenCalledWith('enter');
   input.destroy();
+});
+
+it.each([['7', -1, -1], ['9', 1, -1], ['1', -1, 1], ['3', 1, 1]] as const)('moves diagonally with numpad %s with either Num Lock state', (key, dx, dy) => {
+  const { onMove } = setup();
+  window.dispatchEvent(keyEvent(key));
+  expect(onMove).toHaveBeenLastCalledWith(dx, dy);
+  onMove.mockClear();
+  window.dispatchEvent(new KeyboardEvent('keydown', { key: 'PageUp', code: `Numpad${key}`, bubbles: true }));
+  expect(onMove).toHaveBeenLastCalledWith(dx, dy);
 });

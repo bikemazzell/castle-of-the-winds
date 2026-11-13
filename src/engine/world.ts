@@ -263,15 +263,16 @@ export function dispatch(world: World, action: Action): World {
   switch (action.type) {
     case 'MOVE': {
       const { dx, dy } = action;
-      // Strict cardinal-step validation BEFORE anything else (F11, Task 7):
-      // each delta must be a finite integer of magnitude ≤ 1, exactly one of
-      // them non-zero. Rejections cost no position, turn, RNG or log.
-      const isStep = (v: number): boolean =>
-        Number.isInteger(v) && Math.abs(v) === 1;
-      if (!(isStep(dx) && dy === 0) && !(isStep(dy) && dx === 0)) return world;
+      // Accept one neighboring cell, rejecting malformed and multi-cell deltas.
+      const isDelta = (v: number): boolean => Number.isInteger(v) && Math.abs(v) <= 1;
+      if (!isDelta(dx) || !isDelta(dy) || (dx === 0 && dy === 0)) return world;
       const nx = world.player.x + dx;
       const ny = world.player.y + dy;
       if (nx < 0 || ny < 0 || nx >= LEVEL_SIZE || ny >= LEVEL_SIZE) return world;
+      if (dx !== 0 && dy !== 0) {
+        const flanks = [idx(nx, world.player.y), idx(world.player.x, ny)];
+        if (flanks.some(i => !tileWalkable(world.data, level.tiles[i]!) || level.occupancy[i])) return world;
+      }
       const ni = idx(nx, ny);
       const tile = level.tiles[ni]!;
       if (!tileWalkable(world.data, tile)) {

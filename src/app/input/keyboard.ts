@@ -1,11 +1,4 @@
-/**
- * Keyboard input: cardinal movement keys (WASD, arrows, cardinal numpad) plus
- * command hotkeys. Diagonal keys were removed with the cardinal-alignment
- * work (CODE-QUALITY Task 7): the engine only accepts 4-directional steps,
- * and destination travel covers off-axis movement. Disabled while an
- * editable field has focus or the app-level input gate is closed (modal
- * open).
- */
+/** Keyboard movement and commands, gated while editing fields or using dialogs. */
 
 import type { GameCommand } from './input';
 
@@ -29,6 +22,10 @@ const MOVES: Record<string, [number, number]> = {
   ArrowDown: [0, 1],
   ArrowLeft: [-1, 0],
   ArrowRight: [1, 0],
+  '1': [-1, 1],
+  '3': [1, 1],
+  '7': [-1, -1],
+  '9': [1, -1],
   '2': [0, 1],
   '4': [-1, 0],
   '6': [1, 0],
@@ -80,7 +77,8 @@ export function createKeyboard(target: Window, handlers: KeyboardHandlers): { de
     // a game turn through the global keyboard handler.
     if ((keyboardEvent.key === 'Enter' || keyboardEvent.key === ' ')
       && (keyboardEvent.target as Element | null)?.closest?.('button, a[href], summary')) return;
-    const action = mapKey(keyboardEvent.key);
+    const key = /^Numpad[1-9]$/.test(keyboardEvent.code) ? keyboardEvent.code.slice(-1) : keyboardEvent.key;
+    const action = mapKey(key);
     if (!action) return;
     e.preventDefault();
     if (action.kind === 'move') handlers.onMove(action.dx, action.dy);

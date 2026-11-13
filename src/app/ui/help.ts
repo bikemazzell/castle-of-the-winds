@@ -145,7 +145,7 @@ const MODERN_CONTROLS: ReadonlyArray<{ label: string; items: string[] }> = [
   {
     label: 'Keyboard',
     items: [
-      'Arrow keys, WASD, or numpad 2/4/6/8 move in four directions.',
+      'Arrow keys and WASD move in four directions. Numpad 1/3/7/9 move diagonally. Numpad 5 waits.',
       'Enter interacts with the tile you stand on.',
       'I Bag · C Spells · M Map · Esc Pause · . or 5 Wait.',
       'X Search · R Rest.',

@@ -32,7 +32,8 @@ The `dist/` directory contains the static site. The build supports hosting benea
 
 ## Play
 
-- Move with WASD or the arrow keys. Click or tap a reachable tile to travel there.
+- Move with WASD, arrows, or the numpad. Numpad 7/9/1/3 move NW/NE/SW/SE. Numpad 5 waits.
+- Click or tap a reachable tile to travel there.
 - Open Bag or Spells from the floating action bar. Actions contains commands such as search and stairs.
 - Press Escape to pause. The pause menu provides saves, preferences, help, and Debug controls.
 - Use Debug to reveal the map, change character values, and edit gold or inventory.

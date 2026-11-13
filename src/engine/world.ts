@@ -183,10 +183,19 @@ function nodeFor(world: World, index: number): LevelNodeLite {
   return node;
 }
 
+/** Old maps can contain a generated stair even when the campaign ends here. */
+export function repairLevelStairs(level: Level, node: LevelNodeLite): void {
+  if (node.links.down !== null || node.links.special?.to !== undefined) return;
+  for (let cell = 0; cell < level.tiles.length; cell++) {
+    if (level.tiles[cell] === TILE_STAIRS_DOWN) level.tiles[cell] = TILE_FLOOR;
+  }
+}
+
 /** Get (lazily generating) a level. Generation uses the dedicated gen seed. */
 export function ensureLevel(world: World, index: number): Level {
   const existing = world.levels.get(index);
   if (existing) {
+    repairLevelStairs(existing, nodeFor(world, index));
     // Early Part Two saves lack the return stairs added to floors 1–3.
     // Add a stair on an empty floor without regenerating explored levels.
     if (world.data.part === 2 && index >= 1 && index <= 3
@@ -209,6 +218,7 @@ export function ensureLevel(world: World, index: number): Level {
     hasUpStair: node.links.up !== null,
     placeDoors: true,
   });
+  repairLevelStairs(generated.level, node);
   world.levels.set(index, generated.level);
   if (!world.seen.has(index)) world.seen.set(index, new Uint8Array(LEVEL_AREA));
   populateLevel(world, generated.level, index);

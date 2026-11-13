@@ -23,7 +23,7 @@ import { ALL_TRAP_KINDS } from './traps';
 import { validateSave } from './save-validation';
 import type { DoorState, Inventory, Player, Systems, TrapState, WorldData } from './types';
 import type { QuestState } from './quests';
-import { createWorld, type World } from './world';
+import { createWorld, repairLevelStairs, type World } from './world';
 
 export type { DoorState, TrapState } from './types';
 
@@ -322,6 +322,7 @@ export function deserializeGame(
     level.props = lv.props ? structuredClone(lv.props) : undefined;
     level.traps = lv.traps.map((t) => ({ ...t }));
     level.doors = lv.doors.map((d) => ({ ...d }));
+    repairLevelStairs(level, data.levels.find(node => node.index === lv.index)!);
     world.levels.set(lv.index, level);
     world.seen.set(lv.index, decoded.seen);
     validateTraps(lv.traps, key);

@@ -172,7 +172,7 @@ describe('teleport + rune of return', () => {
     const level = fixtureLevel();
     const rng = new MSLCG(7);
     for (let i = 0; i < 20; i++) {
-      const dest = teleportDestination(rng, level, { x: 35, y: 15 }, 5);
+      const dest = teleportDestination(rng, level, { x: 35, y: 15 }, 5)!;
       const dx = Math.abs(dest.x - 35);
       const dy = Math.abs(dest.y - 15);
       expect(dx <= 5 && dy <= 5).toBe(true);
@@ -184,4 +184,16 @@ describe('teleport + rune of return', () => {
     const level = fixtureLevel();
     expect(runeOfReturnTarget(level)).toEqual({ x: 45, y: 18 });
   });
+});
+it('teleport excludes impassable town terrain', () => {
+ const level=createEmptyLevel(0);level.tiles.fill(130);level.tiles[idx(20,20)]=TILE_FLOOR;
+ const rng=new MSLCG(42);
+ expect(teleportDestination(rng,level,{x:20,y:20})).toEqual({x:20,y:20});
+});
+it('finds a free destination if cross-level random placement cannot use the source cell',()=>{
+ const level=createEmptyLevel(8);level.tiles[idx(63,63)]=TILE_FLOOR;
+ expect(teleportDestination(new MSLCG(1),level,{x:0,y:0},0)).toEqual({x:63,y:63});
+});
+it('reports no destination when a level has no free walkable cell',()=>{
+ expect(teleportDestination(new MSLCG(1),createEmptyLevel(8),{x:0,y:0},0)).toBeNull();
 });

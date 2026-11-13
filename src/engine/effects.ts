@@ -199,7 +199,8 @@ export function applySpellEffect(
     }
 
     case 'teleport_self': {
-      const dest = teleportDestination(world.rng, level, { x: player.x, y: player.y });
+      const dest = teleportDestination(world.rng, level, { x: player.x, y: player.y }, 8, tile => world.data.tiles[String(tile)]?.walkable === true);
+      if (!dest) return { ok: false, message: 'No safe teleport destination.' };
       movePlayer(world, dest.x, dest.y);
       return { ok: true, message: 'The world twists around you.' };
     }
@@ -207,6 +208,7 @@ export function applySpellEffect(
     case 'rune_of_return': {
       const stair = runeOfReturnTarget(level);
       if (stair) {
+        if (level.occupancy[idx(stair.x, stair.y)]) return {ok:false,message:'The return stair is occupied.'};
         movePlayer(world, stair.x, stair.y);
         return { ok: true, message: 'A rune of return whisks you to the stairs.' };
       }

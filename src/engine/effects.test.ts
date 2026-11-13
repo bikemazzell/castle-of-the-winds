@@ -516,3 +516,11 @@ describe('debuff spells', () => {
     expect(world.turn).toBe(1);
   });
 });
+it('Rune of Return rejects an occupied stair without moving the hero',()=>{
+ const w=newWorld();const level=w.levels.get(0)!;
+ level.tiles[idx(6,6)]=0x13;level.occupancy[idx(6,6)]=1;
+ const before={x:w.player.x,y:w.player.y};
+ const result=applySpellEffect(w,syntheticData().spells['s-rune']!);
+ expect(result.ok).toBe(false);expect(result.message).toMatch(/occupied/i);
+ expect({x:w.player.x,y:w.player.y}).toEqual(before);
+});

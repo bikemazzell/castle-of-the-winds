@@ -425,7 +425,7 @@ export function createGameController(deps: ControllerDeps): GameController {
         closeAllModals();
       },
       onLoad: (file) => loadGame(file),
-      onImport: (file) => loadGame(file),
+      onImport: (file) => loadGame(file, false),
       onEdit: (slot) => {
         let file: SaveFile;
         try {
@@ -463,7 +463,7 @@ export function createGameController(deps: ControllerDeps): GameController {
     });
   };
 
-  const loadGame = (file: SaveFile): void => {
+  const loadGame = (file: SaveFile, hasStoredCopy = true): void => {
     let rebuilt: World;
     hintsPending = false; // loading never replays onboarding (UI plan Phase 7)
     removeHint();
@@ -492,7 +492,7 @@ export function createGameController(deps: ControllerDeps): GameController {
     // subsequent save writes into that part's key space (Task P6).
     saves = savesFor(rebuilt.data.part);
     camViewport?.recenter(); // loaded game: camera sits on the hero (Phase 4)
-    dirtySinceSave = false; // the running game now matches a stored file
+    dirtySinceSave = !hasStoredCopy; // imports and edited copies still need saving
     dead = false;
     titleEl?.remove();
     titleEl = null;
@@ -776,7 +776,7 @@ export function createGameController(deps: ControllerDeps): GameController {
             title: 'Debug editor',
             initialTab,
             onApply: (edited) => {
-              loadGame(edited);
+              loadGame(edited, false);
               dirtySinceSave = true;
             },
           });
@@ -802,7 +802,7 @@ export function createGameController(deps: ControllerDeps): GameController {
         openEditorDialog({
           save: snapshot,
           data: dataForSave(snapshot),
-          onApply: (edited) => loadGame(edited),
+          onApply: (edited) => loadGame(edited, false),
         });
       }]);
     }
@@ -1912,23 +1912,20 @@ export function createGameController(deps: ControllerDeps): GameController {
       onImportP1: () => {
         const mgr = savesFor(1);
         if (!mgr) return;
-        openSaveDialog({
-          mode: 'load',
-          manager: mgr,
-          onLoad: (file) => {
-            const seed = ((deps.now ?? Date.now)() >>> 0) || 1;
-            const result = importPart1Character(file, { seed });
-            if (result.ok) {
-              closeAllModals();
-              loadGame(result.save);
-              return;
-            }
+        const importCharacter = (file: SaveFile): void => {
+          const seed = ((deps.now ?? Date.now)() >>> 0) || 1;
+          const result = importPart1Character(file, { seed });
+          if (result.ok) {
             closeAllModals();
-            openModal({ title: 'New Game', content });
-            const errEl = content.querySelector<HTMLElement>('[data-field="import-error"]');
-            if (errEl) errEl.textContent = result.error;
-          },
-        });
+            loadGame(result.save, false);
+            return;
+          }
+          closeAllModals();
+          openModal({ title: 'New Game', content });
+          const errEl = content.querySelector<HTMLElement>('[data-field="import-error"]');
+          if (errEl) errEl.textContent = result.error;
+        };
+        openSaveDialog({ mode: 'load', manager: mgr, onLoad: importCharacter, onImport: importCharacter });
       },
     });
     openModal({ title: 'New Game', content });
@@ -1942,6 +1939,7 @@ export function createGameController(deps: ControllerDeps): GameController {
     // no-op; quotes and gold changes share one calculation.
     let panel: MerchantPanel | null = null;
     const afterAction = (): void => {
+      dirtySinceSave = true;
       const cur = world;
       if (!cur) return;
       if (dead) {
@@ -2071,8 +2069,8 @@ export function createGameController(deps: ControllerDeps): GameController {
     loadBtn.type = 'button';
     loadBtn.textContent = 'Load Game…';
     loadBtn.dataset.action = 'load-game';
-    loadBtn.disabled = recent === null;
-    if (recent !== null) loadBtn.addEventListener('click', () => openSaveMenu('load'));
+    loadBtn.disabled = saves === null;
+    if (saves) loadBtn.addEventListener('click', () => openSaveMenu('load'));
     const settingsBtn = doc.createElement('button');
     settingsBtn.type = 'button';
     settingsBtn.textContent = 'Settings';

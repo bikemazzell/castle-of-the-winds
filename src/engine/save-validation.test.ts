@@ -255,6 +255,12 @@ describe('save boundary validation (Task 2)', () => {
 
     expect(() => validateSave(save, data)).not.toThrow();
 
+    for (const invalid of [undefined, {}, {maxHp:9,ac:1,toHit:1,speed:1,xp:5}, {maxHp:9,ac:1,toHit:1,speed:0,xp:5,damage:{count:1,sides:4,bonus:0}}]) {
+      const malformed=structuredClone(save);
+      (malformed.levels['0']!.entities[0]!.monster! as unknown as {stats:unknown}).stats=invalid;
+      expect(()=>validateSave(malformed,data)).toThrow(/stats/);
+    }
+
     const dup = structuredClone<SaveFile>(save);
     dup.levels['0']!.entities.push({ ...dup.levels['0']!.entities[0]! });
     expect(() => validateSave(dup, data)).toThrow(/duplicate entity/i);

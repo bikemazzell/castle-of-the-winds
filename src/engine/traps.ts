@@ -148,7 +148,8 @@ function applyTrapEffect(world: World, trap: TrapState): string {
       return 'A cloud of gas surrounds you!';
     case 'teleport': {
       const level = world.levels.get(levelIndex)!;
-      const dest = teleportDestination(world.rng, level, { x: player.x, y: player.y });
+      const dest = teleportDestination(world.rng, level, { x: player.x, y: player.y }, 8, tile => world.data.tiles[String(tile)]?.walkable === true);
+      if (!dest) return 'The trap fails to move you.';
       player.x = dest.x;
       player.y = dest.y;
       return 'You trigger a teleport trap!';
@@ -159,7 +160,8 @@ function applyTrapEffect(world: World, trap: TrapState): string {
       const to = node?.links.down;
       if (to === null || to === undefined) return 'You fall through a trap door!';
       const below = ensureLevel(world, to);
-      const dest = teleportDestination(world.rng, below, { x: player.x, y: player.y }, 64);
+      const dest = teleportDestination(world.rng, below, { x: player.x, y: player.y }, 64, tile => world.data.tiles[String(tile)]?.walkable === true);
+      if (!dest) return 'The trap door does not open.';
       world.current = to;
       player.x = dest.x;
       player.y = dest.y;

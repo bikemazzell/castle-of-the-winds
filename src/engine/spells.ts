@@ -211,17 +211,24 @@ export function rollDamage(
  * Teleport destination (manual: random location "in the general vicinity"):
  * a walkable, unoccupied tile within `radius` of `from`, bounded attempts.
  */
-export function teleportDestination(rng: MSLCG, level: Level, from: Point, radius = 8): Point {
+export function teleportDestination(rng: MSLCG, level: Level, from: Point, radius = 8, walkable: (tile: number) => boolean = tile => [1,18,19,128,129,133].includes(tile)): Point | null {
   for (let attempt = 0; attempt < 200; attempt++) {
     const x = from.x + rng.rand(2 * radius + 1) - radius;
     const y = from.y + rng.rand(2 * radius + 1) - radius;
     if (x < 0 || y < 0 || x >= LEVEL_SIZE || y >= LEVEL_SIZE) continue;
     const tile = level.tiles[idx(x, y)] ?? TILE_WALL;
-    if (tile !== TILE_WALL && (level.occupancy[idx(x, y)] ?? 0) === 0) {
+    if (walkable(tile) && (level.occupancy[idx(x, y)] ?? 0) === 0) {
       return { x, y };
     }
   }
-  return { ...from }; // fallback: stay put
+  if (walkable(level.tiles[idx(from.x, from.y)] ?? TILE_WALL) && !level.occupancy[idx(from.x, from.y)]) return { ...from };
+  // A cross-level arrival cannot stay at source coordinates inside a wall.
+  for (let y = 0; y < LEVEL_SIZE; y++) {
+    for (let x = 0; x < LEVEL_SIZE; x++) {
+      if (walkable(level.tiles[idx(x, y)] ?? TILE_WALL) && !level.occupancy[idx(x, y)]) return { x, y };
+    }
+  }
+  return null;
 }
 
 /** Rune of Return: the up-stair coordinates (shrine: uses stair coords). */

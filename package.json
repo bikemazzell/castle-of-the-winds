@@ -22,7 +22,8 @@
     "e2e:mobile": "tsx tools/e2e/run-mobile.ts",
     "e2e:campaign": "tsx tools/e2e/run-campaign.ts",
     "e2e:campaign2": "tsx tools/e2e/run-campaign2.ts",
-    "ui-review": "tsx tools/e2e/run-ui-review.ts"
+    "ui-review": "tsx tools/e2e/run-ui-review.ts",
+    "e2e:release": "tsx tools/e2e/run-release.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

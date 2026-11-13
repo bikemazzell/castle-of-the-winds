@@ -163,6 +163,8 @@ export function createMapPointer(opts: PointerOptions): MapPointer {
 
   const onWindowCancel = (): void => cancel();
 
+  const onOutsideRelease = (event: Event): void => { if (event.target !== surface) cancel(); };
+
   surface.addEventListener('pointerdown', onPointerDown);
   surface.addEventListener('pointerup', onPointerUp);
   surface.addEventListener('pointercancel', onPointerAbort);
@@ -170,6 +172,8 @@ export function createMapPointer(opts: PointerOptions): MapPointer {
   surface.addEventListener('pointermove', onPointerMove);
   surface.addEventListener('pointerleave', onPointerLeave);
   if (win) {
+    win.addEventListener('pointerup', onOutsideRelease);
+    win.addEventListener('pointercancel', onOutsideRelease);
     win.addEventListener('blur', onWindowCancel);
     win.addEventListener('resize', onWindowCancel);
   }
@@ -188,6 +192,8 @@ export function createMapPointer(opts: PointerOptions): MapPointer {
       surface.removeEventListener('pointermove', onPointerMove);
       surface.removeEventListener('pointerleave', onPointerLeave);
       if (win) {
+        win.removeEventListener('pointerup', onOutsideRelease);
+        win.removeEventListener('pointercancel', onOutsideRelease);
         win.removeEventListener('blur', onWindowCancel);
         win.removeEventListener('resize', onWindowCancel);
       }

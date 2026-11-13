@@ -265,6 +265,22 @@ describe('afterActionEffects', () => {
 });
 
 describe('town merchants', () => {
+  it('warns before discarding a purchase made after saving',()=>{
+    const c=bootstrap();const world=beginGame(c);world.inventory.gold=2000;
+    world.player.x=16;world.player.y=16;
+    document.querySelector<HTMLButtonElement>('[data-action="pause"]')!.click();
+    document.querySelector<HTMLButtonElement>('[data-pause-action="save"]')!.click();
+    document.querySelector<HTMLButtonElement>('.dialog [data-action="save"]')!.click();
+    document.querySelector<HTMLButtonElement>('[data-slot-id="2"] [data-action="save-here"]')!.click();
+    c.openMerchant(loadTownShops().shops.gunnhild!);
+    document.querySelector<HTMLButtonElement>('.merchant-buy-list .item-row-button')!.click();
+    document.querySelector<HTMLButtonElement>('[data-field="primary-action"]')!.click();
+    document.querySelector<HTMLButtonElement>('.modal-overlay [data-action="close"]')!.click();
+    document.querySelector<HTMLButtonElement>('[data-action="pause"]')!.click();
+    document.querySelector<HTMLButtonElement>('[data-pause-action="quit"]')!.click();
+    expect(document.querySelector('[data-action="quit-without"]')).not.toBeNull();
+  });
+
   it('a shop door needs an explicit open: MOVE stays silent, Enter opens', () => {
     const c = bootstrap();
     const world = beginGame(c);
@@ -994,12 +1010,12 @@ describe('save manager integration', () => {
     document.body.innerHTML = '';
   });
 
-  it('Continue and Load Game stay disabled when there are no saves', () => {
+  it('Continue stays disabled but backup import remains available without saves', () => {
     bootstrap();
     const cont = root.querySelector<HTMLButtonElement>('[data-action="continue"]');
     const load = root.querySelector<HTMLButtonElement>('[data-action="load-game"]');
     expect(cont?.disabled).toBe(true);
-    expect(load?.disabled).toBe(true);
+    expect(load?.disabled).toBe(false);
   });
 
   it('title screen offers Settings and Help alongside Continue', () => {
@@ -3136,6 +3152,21 @@ describe('part 1 import (PART2-PLAN Task P7)', () => {
     dismissStoryAll();
   });
 
+  it('imports a Part One backup file into a new Part Two campaign',async()=>{
+    const c=bootImport();openPart2Wizard(c);
+    document.querySelector<HTMLButtonElement>('[data-action="import-p1"]')!.click();
+    const input=document.querySelector<HTMLInputElement>('.save-dialog input[type="file"]')!;
+    const file=new File([], 'hero.cotwsave.json');
+    Object.defineProperty(file,'text',{value:()=>Promise.resolve(JSON.stringify(veteranSave('Backup')))});
+    Object.defineProperty(input,'files',{value:[file]});input.dispatchEvent(new Event('change',{bubbles:true}));
+    await vi.waitFor(()=>expect(c.getWorld()?.data.part).toBe(2));
+    expect(c.getWorld()?.player.name).toBe('Backup');
+    dismissStoryAll();
+    document.querySelector<HTMLButtonElement>('[data-action="pause"]')!.click();
+    document.querySelector<HTMLButtonElement>('[data-pause-action="quit"]')!.click();
+    expect(document.querySelector('[data-action="quit-without"]')).not.toBeNull();
+  });
+
   it('a dead hero is rejected with the reason shown in the wizard', () => {
     const c = bootImport(seedSlot(1, veteranSave('Fallen', 0)));
     openPart2Wizard(c);
@@ -3147,4 +3178,11 @@ describe('part 1 import (PART2-PLAN Task P7)', () => {
     // The wizard is still open for a manual start.
     expect(document.querySelector('.modal-overlay [data-action="begin"]')).not.toBeNull();
   });
+});
+
+it('allows a fresh browser to open the backup import dialog',()=>{
+ const c=bootstrap();void c;
+ const button=document.querySelector<HTMLButtonElement>('[data-action="load-game"]')!;
+ expect(button.disabled).toBe(false);button.click();
+ expect(document.querySelector('.save-dialog input[type="file"]')).not.toBeNull();
 });

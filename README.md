@@ -1,5 +1,7 @@
 # Castle of the Winds
 
+[Play in your browser](https://bikemazzell.github.io/castle-of-the-winds/).
+
 An independent, turn-based browser RPG loosely inspired by Castle of the Winds, the Windows game by Rick Saada.
 Play with a keyboard, mouse, or touch screen. Both campaigns are playable.
 
@@ -63,6 +65,7 @@ Browser tests use `/usr/bin/brave-browser-stable` and isolated browser profiles:
 ```sh
 npm run e2e:preview
 npm run e2e:mobile
+npm run e2e:release
 npm run e2e:campaign
 npm run e2e:campaign2
 ```
@@ -81,3 +84,6 @@ No blanket public-domain or open-source license claim applies to all included ma
 
 The public repository contains the application, game data, tests, build configuration, and this README.
 It excludes original binaries, extracted artwork, internal research, plans, review files, and private repository history.
+
+GitHub Actions runs tests and builds the game before publishing `main` to GitHub Pages.
+Browser saves belong to the site address. Export a save file to move between a local build and the hosted game.

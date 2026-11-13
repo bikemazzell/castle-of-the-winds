@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { newWorld } from './game';
 import { createCharacter } from './character';
 import { TILE_FLOOR, TILE_STAIRS_DOWN, TILE_STAIRS_UP } from './dungeon';
 import { applyStatus } from './effects';
@@ -397,4 +398,23 @@ describe('trap detection', () => {
     expect(w.turn).toBe(0);
     expect(w.log.some((e) => e.text === 'Nothing there to disarm!')).toBe(true);
   });
+});
+
+it('trap door finds safe ground when random placement exhausts its attempts', () => {
+  const world = newWorld({ worldSeed: 42, part: 1, player: {
+    name: 'Traveler', gender: 'female', strength: 50, intelligence: 50,
+    constitution: 50, dexterity: 50, difficulty: 'intermediate',
+  } });
+  const level = ensureLevel(world, 7);
+  const below = ensureLevel(world, 8);
+  world.current = 7;
+  world.player.x = 23;
+  world.player.y = 35;
+  expect(level.traps?.find(t => t.x === 23 && t.y === 35)?.kind).toBe('trap_door');
+  world.rng.setState(956);
+  triggerTrapAt(world, 23, 35);
+  expect(world.current).toBe(8);
+  const cell = idx(world.player.x, world.player.y);
+  expect(world.data.tiles[String(below.tiles[cell])]?.walkable).toBe(true);
+  expect(below.occupancy[cell]).toBe(0);
 });

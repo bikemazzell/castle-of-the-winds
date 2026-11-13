@@ -274,3 +274,11 @@ describe('map pointer camera gestures: drag pan + pinch zoom (UI plan Phase 4)',
     expect(onHover).not.toHaveBeenCalled();
   });
 });
+it('ends a drag when the pointer is released outside the map',()=>{
+ const onDrag=vi.fn();const {surface,pointer,onTap}=setup({onDrag,win:window});
+ surface.dispatchEvent(pointerEvent('pointerdown',{clientX:10,clientY:10,pointerType:'mouse',buttons:1}));
+ surface.dispatchEvent(pointerEvent('pointermove',{clientX:30,clientY:10,pointerType:'mouse',buttons:1}));
+ window.dispatchEvent(pointerEvent('pointerup',{clientX:100,clientY:10,pointerType:'mouse',buttons:0}));
+ surface.dispatchEvent(pointerEvent('pointermove',{clientX:60,clientY:10,pointerType:'mouse',buttons:0}));
+ expect(onDrag).toHaveBeenCalledTimes(1);expect(onTap).not.toHaveBeenCalled();pointer.destroy();
+});

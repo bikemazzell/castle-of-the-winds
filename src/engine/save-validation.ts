@@ -169,6 +169,41 @@ function validateEntityFields(entity: unknown): Entity {
   const monster = entity.monster;
   if (monster !== undefined) {
     if (!isRecord(monster)) fail('entity.monster', 'must be an object');
+    const stats = monster.stats;
+    if (!isRecord(stats)) fail('entity.monster.stats', 'must be an object');
+    for (const key of ['maxHp', 'ac', 'toHit', 'speed', 'xp'] as const) {
+      const value = stats[key];
+      const minimum = key === 'maxHp' || key === 'speed' ? 1 : key === 'xp' ? 0 : Number.MIN_SAFE_INTEGER;
+      if (!Number.isSafeInteger(value) || (value as number) < minimum) {
+        fail(`entity.monster.stats.${key}`, 'must be a valid integer');
+      }
+    }
+    const damage = stats.damage;
+    if (!isRecord(damage)) fail('entity.monster.stats.damage', 'must be an object');
+    for (const key of ['count', 'sides', 'bonus'] as const) {
+      const value = damage[key];
+      const minimum = key === 'count' ? 0 : key === 'sides' ? 1 : Number.MIN_SAFE_INTEGER;
+      if (!Number.isSafeInteger(value) || (value as number) < minimum || (key === 'count' && (value as number) > 100)) {
+        fail(`entity.monster.stats.damage.${key}`, 'must be a valid dice value');
+      }
+    }
+    const elements = ['fire', 'cold', 'lightning', 'acid', 'poison_gas'];
+    for (const key of ['immuneElement', 'vulnerableElement'] as const) {
+      if (stats[key] !== undefined && !elements.includes(stats[key] as string)) {
+        fail(`entity.monster.stats.${key}`, 'must be a known element');
+      }
+    }
+    if (stats.breath !== undefined) {
+      const breath = stats.breath;
+      if (!isRecord(breath) || !elements.includes(breath.element as string)) {
+        fail('entity.monster.stats.breath', 'must define a known element');
+      }
+      for (const key of ['dieSides', 'every'] as const) {
+        if (!Number.isSafeInteger(breath[key]) || (breath[key] as number) < 1) {
+          fail(`entity.monster.stats.breath.${key}`, 'must be a positive integer');
+        }
+      }
+    }
     if (!Number.isInteger(monster.hp) || (monster.hp as number) < 0) {
       fail('entity.monster.hp', 'must be an integer ≥ 0');
     }

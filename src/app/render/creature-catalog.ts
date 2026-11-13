@@ -3,7 +3,7 @@ export type CreatureFamily = 'unknown' | 'demon' | 'rodent' | 'snake' | 'orc' | 
 export type ImpactMaterial = 'blood' | 'bone' | 'spirit' | 'slime' | 'stone' | 'ember' | 'ice' | 'dust';
 export interface CreatureAppearance {
     family: CreatureFamily;
-    /** Sprite size as a fraction of one tile, centered above its feet. */
+    /** Sprite size in tiles, centered above its feet; bosses extend beyond one cell. */
     scale: number;
     color: string;
     rank: number;
@@ -74,6 +74,6 @@ export function creatureAppearance(name: string): CreatureAppearance {
         material = 'stone';
     if (family === 'elemental')
         material = /magma|fire/.test(n) ? 'ember' : /ice/.test(n) ? 'ice' : 'dust';
-    const scale = /mouse/.test(n) ? 0.35 : family === 'dragon' && /young/.test(n) ? 0.85 : FAMILY_SCALE[family];
+    const scale = /surtur/.test(n) ? 3.6 : /rungnir/.test(n) ? 3.2 : family === 'boss' ? 2.8 : /mouse/.test(n) ? 0.35 : family === 'dragon' && /young/.test(n) ? 0.85 : FAMILY_SCALE[family];
     return { family, scale, color, rank, material, idle: family === 'spirit' || family === 'elemental' ? 'float' : family === 'slime' ? 'pulse' : family === 'bat' ? 'wings' : 'breathe' };
 }

@@ -70,7 +70,7 @@ await runWith([], async close => {
   close(() => rm(folder,{recursive:true,force:true}));
   const browser = await launchBrave(console.error);
   close(() => browser.close());
-  const server = await ensureVite(console.error);
+  const server = process.env.E2E_URL ? {url:process.env.E2E_URL,stop:async()=>{}} : await ensureVite(console.error);
   close(() => server.stop());
   for (const part of [1,2] as const) {
     const page = await newPage(browser.browser,server.url);
@@ -153,7 +153,8 @@ await runWith([], async close => {
     await loadFixture(page,file,part);
     console.log(`part ${part}: arena loaded`);
     await page.keyboard.press('f');
-    await page.click('[data-ranged]');
+    assert.equal(await page.$('.modal-overlay'),null,'Fire aims directly without a weapon dialog');
+    assert.equal(await page.evaluate(()=>window.__cotw.targeting().active),true);
     const before=await page.evaluate(()=>window.__cotw.turn());
     const aim=await mapPoint(page,13,10);
     await page.mouse.move(aim.x,aim.y);
@@ -219,6 +220,27 @@ await runWith([], async close => {
     assert.equal(reloaded.inventory.gold,saved.inventory.gold);assert.equal(reloaded.inventory.pack.find(i=>i.defId==='x-bone')?.count,1);
     assert.equal(reloaded.player.underwearColor,'purple');assert.equal(reloaded.inventory.equipment.helm?.color,'gold');
     assert.ok(reloaded.player.statuses.some(s=>s.kind==='drunken'));
+    // Real controller stack mutations, from the purchased town fixture.
+    await writeFile(file,JSON.stringify(bought));await loadFixture(page,file,part);
+    const arrowUid=bought.inventory.pack.find(i=>i.defId==='x-arrow')!.uid;
+    await page.keyboard.press('i');
+    await page.click(`.pack-list [data-uid="${arrowUid}"] .item-row-button`);
+    await page.click('[data-action="quantity-plus"]');await page.click('[data-action="quantity-plus"]');
+    assert.equal(await page.$eval('[data-field="discard-quantity"]',el=>(el as HTMLInputElement).value),'3');
+    await page.click('[data-action="discard"]');await page.click('[data-action="discard-confirm"]');
+    await page.keyboard.press('Escape');
+    const discarded=await saveSnapshot(page,part);
+    assert.equal(discarded.inventory.pack.find(i=>i.defId==='x-arrow')?.count,17);
+    await page.evaluate(()=>(document.activeElement as HTMLElement)?.blur());
+    await page.keyboard.press('Enter');await page.waitForSelector('[data-mtab="sell"]');await page.click('[data-mtab="sell"]');
+    await page.click(`.merchant-panel [data-uid="${arrowUid}"] .item-row-button`);
+    await page.click('[data-field="sell-quantity"]');
+    await page.keyboard.down('Control');await page.keyboard.press('a');await page.keyboard.up('Control');
+    await page.type('[data-field="sell-quantity"]','4');
+    await page.click('.merchant-panel [data-field="primary-action"]');await page.keyboard.press('Escape');
+    const sold=await saveSnapshot(page,part);
+    assert.equal(sold.inventory.pack.find(i=>i.defId==='x-arrow')?.count,13);
+    assert.equal(sold.inventory.gold,176);
     assertNoPageErrors(errors);
     console.log(JSON.stringify({part,assisted:true,freshGame:true,catalogPurchases:true,ranged:true,oneClickSpell:true,focusedKeyboardCast:true,finiteRewardsAcrossReload:true,colorsAndEffectsReload:true,screenshots:`docs/e2e/expansion-part${part}-*.png`}));
     await page.close();

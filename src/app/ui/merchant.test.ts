@@ -196,3 +196,19 @@ it('quotes and buys stack quantities, then prevents accidental repeat purchases'
  input().value='0';input().dispatchEvent(new Event('input'));expect(panel.el.querySelector<HTMLButtonElement>('[data-field="primary-action"]')!.disabled).toBe(true);
  select('i-sword');expect(input()).toBeNull();
 });
+
+it('sells a chosen quantity with shared bounded controls', () => {
+  const onSell = vi.fn();
+  const panel = createMerchantPanel({ shop: stockShop(), defs: defs(), inv: inv(), player: player(), gold: 500, actions: { onSell } });
+  document.body.append(panel.el);
+  panel.el.querySelector<HTMLButtonElement>('[data-mtab="sell"]')!.click();
+  panel.el.querySelector<HTMLButtonElement>('[data-uid="i-potion#1"] button')!.click();
+  const input = panel.el.querySelector<HTMLInputElement>('[data-field="sell-quantity"]')!;
+  expect(input).not.toBeNull();
+  expect(input.value).toBe('1');
+  panel.el.querySelector<HTMLButtonElement>('[data-action="quantity-plus"]')!.click();
+  expect(input.value).toBe('2');
+  expect(panel.el.querySelector<HTMLButtonElement>('[data-action="quantity-plus"]')!.disabled).toBe(true);
+  panel.el.querySelector<HTMLButtonElement>('[data-field="primary-action"]')!.click();
+  expect(onSell).toHaveBeenCalledExactlyOnceWith('i-potion#1', 2);
+});

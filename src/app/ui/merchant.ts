@@ -12,6 +12,7 @@ import type { Inventory, ItemDefRuntime, Player } from '../../engine/types';
 import type { EquipSlot } from '../../engine/types';
 import { buyCost, healPrice, sellGain } from '../../engine/pricing';
 import { itemDetails, itemRow } from './item-view';
+import { quantityControl } from './quantity';
 
 export interface ShopDef {
   id: string;
@@ -22,7 +23,7 @@ export interface ShopDef {
 
 export interface MerchantPanelActions {
   onBuy?: (defId: string, count?: number) => string | void;
-  onSell?: (uid: string) => string | void;
+  onSell?: (uid: string, count?: number) => string | void;
   onIdentify?: (uid: string) => string | void;
   onHeal?: () => string | void;
 }
@@ -355,41 +356,19 @@ export function createMerchantPanel(data: MerchantPanelData): MerchantPanel {
     }
     let quantityInput: HTMLInputElement | undefined;
     if (def.stackable) {
-      const controls = document.createElement('div');
-      controls.className = 'merchant-quantity';
-      const label = document.createElement('label');
-      label.textContent = 'Quantity';
-      quantityInput = document.createElement('input');
-      const input = quantityInput;
-      input.type = 'number'; input.min = '1'; input.max = '999'; input.step = '1';
-      input.value = String(quantity); input.dataset.field = 'buy-quantity';
-      label.appendChild(input);
-      const minus = document.createElement('button');
-      const plus = document.createElement('button');
-      minus.type = plus.type = 'button';
-      minus.textContent = '−'; plus.textContent = '+';
-      minus.dataset.action = 'quantity-minus'; plus.dataset.action = 'quantity-plus';
-      minus.setAttribute('aria-label', 'Decrease quantity'); plus.setAttribute('aria-label', 'Increase quantity');
-      const update = (): void => {
-        quantity = input.valueAsNumber;
-        const valid = Number.isInteger(quantity) && quantity >= 1 && quantity <= 999;
-        const purchased = purchasedDefId === def.id;
-        quote = buyCost(def, valid ? quantity : 1);
-        btn.disabled = purchased || !valid;
-        btn.textContent = purchased ? 'Purchased' : valid ? `Buy ×${quantity} — ${gold(quote.total)}` : 'Choose a quantity from 1 to 999';
-        btn.classList.toggle('unaffordable', valid && current.gold < quote.total);
-        minus.disabled = purchased || quantity <= 1;
-        plus.disabled = purchased || quantity >= 999;
-        input.disabled = purchased;
-      };
-      input.addEventListener('input', update);
-      for (const [button, delta] of [[minus, -1], [plus, 1]] as const) {
-        button.addEventListener('click', () => {
-          input.value = String(Math.max(1, Math.min(999, Number.isFinite(quantity) ? Math.floor(quantity) + delta : 1)));
-          update(); showNotice();
-        });
-      }
-      controls.append(minus, label, plus); detailsHost.appendChild(controls); update();
+      const controls = quantityControl({ field: 'buy-quantity', max: 999, value: quantity,
+        disabled: purchasedDefId === def.id,
+        onChange: (value, valid) => {
+          quantity = value;
+          const purchased = purchasedDefId === def.id;
+          quote = buyCost(def, valid ? quantity : 1);
+          btn.disabled = purchased || !valid;
+          btn.textContent = purchased ? 'Purchased' : valid ? `Buy ×${quantity} — ${gold(quote.total)}` : 'Choose a quantity from 1 to 999';
+          btn.classList.toggle('unaffordable', valid && current.gold < quote.total);
+        },
+      });
+      quantityInput = controls.input;
+      detailsHost.append(controls.el);
     }
     if (current.gold < quote.total) btn.classList.add('unaffordable');
     btn.addEventListener('click', () => {
@@ -414,15 +393,26 @@ export function createMerchantPanel(data: MerchantPanelData): MerchantPanel {
     const item = current.inv?.pack.find((i) => i.uid === selectedUid);
     const def = item ? current.defs[item.defId] : undefined;
     if (!item || !def) return;
-    const quote = sellGain(def, shop.kind === 'junk' ? 'junk' : 'store', item.count);
+    let count = 1;
     detailsHost.appendChild(itemDetails({ def, equipped: equippedDefFor(def) }));
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'primary-action';
     btn.dataset.field = 'primary-action';
-    btn.textContent = item.count > 1 ? `Sell all ${item.count} — ${gold(quote.total)}` : `Sell — ${gold(quote.total)}`;
+    const update = (value: number, valid: boolean): void => {
+      count = value;
+      btn.disabled = !valid;
+      btn.textContent = valid ? `Sell${item.count > 1 ? ` ×${count}` : ''} — ${gold(sellGain(def, shop.kind === 'junk' ? 'junk' : 'store', count).total)}` : `Choose a quantity from 1 to ${item.count}`;
+    };
+    update(1, true);
+    if (item.count > 1) detailsHost.append(quantityControl({ field: 'sell-quantity', max: item.count, onChange: update }).el);
+    let submitted = false;
     btn.addEventListener('click', () => {
-      const reason = actions?.onSell?.(item.uid);
+      if (submitted || btn.disabled) return;
+      submitted = true;
+      btn.disabled = true;
+      const reason = actions?.onSell?.(item.uid, count);
+      if (reason || !actions?.onSell) { submitted = false; btn.disabled = false; }
       showNotice(reason ?? undefined);
     });
     detailsHost.appendChild(btn);

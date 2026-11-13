@@ -242,3 +242,43 @@ it('keeps discard confirmation focus through refresh and returns focus on Cancel
   cancel.click();
   expect(document.activeElement).toBe(panel.el.querySelector('[data-action="discard"]'));
 });
+
+it('discards a chosen stack quantity once and requires unequip for worn items', () => {
+  const i = inv();
+  const onDiscard = vi.fn();
+  const panel = createInventoryPanel({ inv: i, defs: defs(), player: player(), actions: { ...actions(), onDiscard } });
+  document.body.append(panel.el);
+  panel.el.querySelector<HTMLButtonElement>('[data-uid="i-potion#3"] button')!.click();
+  const input = panel.el.querySelector<HTMLInputElement>('[data-field="discard-quantity"]')!;
+  expect(input).not.toBeNull();
+  input.value = '2'; input.dispatchEvent(new Event('input'));
+  panel.el.querySelector<HTMLButtonElement>('[data-action="discard"]')!.click();
+  const confirm = panel.el.querySelector<HTMLButtonElement>('[data-action="discard-confirm"]')!;
+  expect(confirm.textContent).toContain('×2');
+  confirm.click(); confirm.click();
+  expect(onDiscard).toHaveBeenCalledExactlyOnceWith('i-potion#3', 2);
+  i.equipment.weapon = i.pack.shift()!;
+  panel.refresh(i);
+  panel.el.querySelector<HTMLButtonElement>('[data-tab="equipment"]')!.click();
+  panel.el.querySelector<HTMLButtonElement>('[data-slot="weapon"] button')!.click();
+  expect(panel.el.querySelector('[data-action="discard"]')).toBeNull();
+  expect(panel.el.querySelector('.equipment-hero svg')).not.toBeNull();
+});
+
+it('invalidates a discard confirmation when the stack changes and preserves remaining items', () => {
+  const i = inv();
+  const onDiscard = vi.fn();
+  const panel = createInventoryPanel({ inv: i, defs: defs(), player: player(), actions: { ...actions(), onDiscard } });
+  document.body.append(panel.el);
+  panel.el.querySelector<HTMLButtonElement>('[data-uid="i-potion#3"] button')!.click();
+  panel.el.querySelector<HTMLButtonElement>('[data-action="discard"]')!.click();
+  const old = panel.el.querySelector<HTMLButtonElement>('[data-action="discard-confirm"]')!;
+  i.pack.find(item => item.uid === 'i-potion#3')!.count = 1;
+  old.click();
+  expect(onDiscard).not.toHaveBeenCalled();
+  panel.refresh(i);
+  expect(panel.el.querySelector('[data-action="discard-confirm"]')).toBeNull();
+  panel.el.querySelector<HTMLButtonElement>('[data-action="discard"]')!.click();
+  panel.el.querySelector<HTMLButtonElement>('[data-action="discard-confirm"]')!.click();
+  expect(onDiscard).toHaveBeenCalledExactlyOnceWith('i-potion#3', 1);
+});

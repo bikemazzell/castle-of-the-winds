@@ -1339,3 +1339,45 @@ button:is(.primary-action, .begin-btn, .story-continue, .editor-tab.active):hove
 .merchant-receipt { color: var(--accent); margin: var(--gap-8) 0; }
 
 .merchant-sale-preview { max-height: 8rem; overflow-y: auto; }
+
+/* Original pixel item art and anatomical equipment layout. */
+.item-icon { width: 30px; height: 30px; border-radius: 0; }
+.item-icon svg { width: 100%; height: 100%; display: block; }
+.item-details-name { display: flex; align-items: center; gap: 8px; }
+.show-equipment .inv-list-col { max-height: none; min-width: 0; flex-basis: 66%; }
+.show-equipment .inv-details-col { min-width: 0; flex-basis: 34%; }
+.equip-list { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr) minmax(0, 1fr); gap: 5px; }
+.equipment-hero { grid-column: 2; grid-row: 2 / 6; display: flex; align-items: center; justify-content: center; background: radial-gradient(ellipse, #51473755, transparent 75%); }
+.equipment-hero svg { width: 100%; max-width: 180px; }
+.equip-list .equip-row { display: flex; flex-direction: column; gap: 2px; min-width: 0; padding: 4px; text-align: center; border: 1px solid var(--border); background: var(--panel); border-radius: 3px; }
+.equip-list .equip-row button { width: 100%; padding: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; border: 0; background: transparent; color: var(--ink); }
+.equip-list .slot-label { flex: none; font-size: .75rem; }
+.equip-list .slot-value { font-size: .75rem; overflow-wrap: anywhere; }
+.equip-list .equip-row.selected { border-color: var(--accent); }
+.equip-row[data-slot="helm"] { grid-area: 1 / 2; }
+.equip-row[data-slot="amulet"] { grid-area: 2 / 3; }
+.equip-row[data-slot="cloak"] { grid-area: 3 / 1; }
+.equip-row[data-slot="armor"] { grid-area: 2 / 1; }
+.equip-row[data-slot="bracers"] { grid-area: 3 / 3; }
+.equip-row[data-slot="gauntlets"] { grid-area: 5 / 1; }
+.equip-row[data-slot="shield"] { grid-area: 4 / 1; }
+.equip-row[data-slot="weapon"] { grid-area: 4 / 3; }
+.equip-row[data-slot="ring1"] { grid-area: 5 / 3; }
+.equip-row[data-slot="ring2"] { grid-area: 6 / 1; }
+.equip-row[data-slot="boots"] { grid-area: 6 / 2; }
+.drop-area { flex-wrap: wrap; }
+.drop-area > p { flex-basis: 100%; }
+.quantity-control { display: flex; align-items: end; gap: 8px; }
+.quantity-control label { display: flex; flex-direction: column; gap: 3px; font-size: .85rem; }
+.quantity-control input { width: 5rem; min-height: 44px; box-sizing: border-box; }
+.quantity-control button { min-width: 44px; min-height: 44px; }
+@media (max-width: 700px) {
+  .show-equipment .inv-split { flex-direction: column; }
+  .show-equipment .inv-details-col { border-left: 0; border-top: 1px solid var(--border); padding: 8px 0 0; }
+}
+.equipment-hero { align-items: center; }
+.equipment-hero svg { width: 100%; max-width: 240px; flex-shrink: 0; }
+.equip-list .equip-row { z-index: 1; }
+/* The equipment board scrolls with the dialog rather than in a second pane. */
+.show-equipment .inv-list-col { overflow: visible; max-height: none !important; }
+.dialog-inventory { width: min(100%, 54rem); }

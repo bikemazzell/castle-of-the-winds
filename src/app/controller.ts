@@ -61,7 +61,7 @@ import { ownFocus } from './ui/focus';
 import { createGameInput, type GameInput } from './input/input';
 import { mapKey } from './input/keyboard';
 import { createViewport, type Viewport } from './render/viewport';
-import { createRenderer, renderFrame, type Renderer, type RenderStyles, type Ctx2D, type ActorMotion, type SceneInput } from './render/renderer';
+import { createRenderer, renderFrame, enlargedMonsterAt, type Renderer, type RenderStyles, type Ctx2D, type ActorMotion, type SceneInput } from './render/renderer';
 import { buildTileStyles, loadSprites, spriteNamesFor, type TileDefLike } from './render/styles';
 import { loadActorSprites } from './render/actor-art';
 import { createTerrainArt } from './render/terrain-art';
@@ -652,7 +652,7 @@ export function createGameController(deps: ControllerDeps): GameController {
         onEquip: (uid) => { dispatchAction({ type: 'EQUIP', uid }); afterAction(); },
         onUnequip: (slot) => { dispatchAction({ type: 'UNEQUIP', slot }); afterAction(); },
         onUse: (uid) => { dispatchAction({ type: 'USE', uid }); afterAction(); },
-        onDiscard: (uid) => { dispatchAction({ type: 'DISCARD', uid }); afterAction(); },
+        onDiscard: (uid, count) => { dispatchAction({ type: 'DISCARD', uid, count }); afterAction(); },
         onAutoArrange: () => { autoArrange(w.inventory, w.data.items); dirtySinceSave = true; afterAction(); },
       },
     });
@@ -717,30 +717,23 @@ export function createGameController(deps: ControllerDeps): GameController {
   const openFire = (): void => {
     const w = world;
     if (!w || dead) return;
-    const content = doc.createElement('div');
-    content.className = 'menu-list';
     const weapon = w.inventory.equipment.weapon;
-    const choices = [...(weapon ? [weapon] : []), ...w.inventory.pack.filter(item => rangedProfile(item.defId)?.throwable)];
-    for (const item of choices) {
-      const profile = rangedProfile(item.defId);
-      const def = w.data.items[item.defId];
-      if (!profile || !def) continue;
-      const button = doc.createElement('button');
-      button.type = 'button';
-      button.dataset.ranged = item.uid;
-      const ammo = profile.ammoId ? w.inventory.pack.filter(i => i.defId === profile.ammoId).reduce((sum, i) => sum + i.count, 0) : item.count;
-      button.textContent = `${def.name} · range ${profile.range}${profile.ammoId || profile.throwable ? ` · ${ammo} remaining` : ''}`;
-      button.disabled = !!(profile.ammoId || profile.throwable) && ammo === 0;
-      button.addEventListener('click', () => { closeAllModals(); startTargeting('@ranged', def.name, item === weapon ? undefined : item.uid); });
-      content.appendChild(button);
+    const item = weapon && rangedProfile(weapon.defId) ? weapon
+      : w.inventory.pack.find(candidate => candidate.count > 0 && rangedProfile(candidate.defId)?.throwable);
+    const def = item && w.data.items[item.defId];
+    const profile = item && rangedProfile(item.defId);
+    let notice: string | undefined;
+    if (!item || !def || !profile) notice = 'Equip a bow, crossbow, hand cannon, or whip, or carry rocks and bones to throw.';
+    else if (profile.ammoId && !w.inventory.pack.some(ammo => ammo.defId === profile.ammoId && ammo.count > 0)) {
+      notice = `No ${w.data.items[profile.ammoId]?.name ?? 'ammunition'} for ${def.name}.`;
     }
-    if (!content.children.length) {
-      w.log.push({turn:w.turn,text:'Equip a bow, crossbow, hand cannon, or whip, or carry rocks and bones to throw.'});
+    if (notice) {
+      w.log.push({turn:w.turn,text:notice});
       if (w.log.length > 500) w.log.splice(0,w.log.length-500);
       sync();
       return;
     }
-    openModal({ title: 'Fire / throw', content });
+    if (item && def) startTargeting('@ranged', def.name, item === weapon ? undefined : item.uid);
   };
 
   const nearbyEncounters = (): Array<{id:number|string;name:string;x:number;y:number}> => {
@@ -1202,6 +1195,7 @@ export function createGameController(deps: ControllerDeps): GameController {
       turns: w.turn,
       gold: w.inventory.gold,
       recentEvents,
+      onDismiss: () => { if (!destroyed && dead) toTitle(); },
       onNewGame: () => { closeAllModals(); newGame(); },
       onLoad: () => { closeAllModals(); openSaveMenu('load'); },
     });
@@ -1919,11 +1913,17 @@ export function createGameController(deps: ControllerDeps): GameController {
     }
   };
 
+  let lastRenderedScene: SceneInput | null = null;
   const screenToWorld = (px: number, py: number): { x: number; y: number } => {
     if (deps.screenToWorld) return deps.screenToWorld(px, py);
     const rect = canvas.getBoundingClientRect();
     const cam = camViewport?.lastCamera() ?? null;
     if (cam) {
+      const scene = lastRenderedScene;
+      const current = world && scene && scene.level === world.levels.get(world.current)
+        && scene.visible === world.visible && scene.player.x === world.player.x && scene.player.y === world.player.y;
+      const hit = current && enlargedMonsterAt(cam, scene, px - rect.left, py - rect.top);
+      if (hit) return hit;
       return {
         x: Math.floor(cam.originX + (px - rect.left) / cam.tile),
         y: Math.floor(cam.originY + (py - rect.top) / cam.tile),
@@ -2039,7 +2039,7 @@ export function createGameController(deps: ControllerDeps): GameController {
       else { flight={...projectile,progress}; renderer?.markDirty(); }
     }
     const overlay = { ...(base ?? {}), flash: flashOverlay, feedback, projectile:flight };
-    renderFrame(ctx as unknown as Ctx2D, camera, {
+    lastRenderedScene = {
       level,
       seen,
       visible: w.visible,
@@ -2055,7 +2055,8 @@ export function createGameController(deps: ControllerDeps): GameController {
       // Detect Monsters: sensed markers are distinct from live visibility.
       sense: hasStatus(w.player, 'detect_monsters'),
       overlay,
-    }, styles);
+    };
+    renderFrame(ctx as unknown as Ctx2D, camera, lastRenderedScene, styles);
   };
 
   const loadArt = (): void => {
@@ -2213,9 +2214,9 @@ export function createGameController(deps: ControllerDeps): GameController {
           if (!result.ok) return result.reason;
           afterAction();
         },
-        onSell: (uid: string): string | void => {
+        onSell: (uid: string, count?: number): string | void => {
           const cur = world!;
-          const result = sellItem(cur, uid, undefined, shop.kind === 'junk' ? 'junk' : 'store');
+          const result = sellItem(cur, uid, count, shop.kind === 'junk' ? 'junk' : 'store');
           if (!result.ok) return result.reason;
           afterAction();
         },

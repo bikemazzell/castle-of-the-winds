@@ -34,12 +34,17 @@ The `dist/` directory contains the static site. The build supports hosting benea
 
 ## Play
 
+Closing the death dialog returns to the title screen. Existing saves remain available.
+
 - Move with WASD, arrows, or the numpad. Numpad 7/9/1/3 move NW/NE/SW/SE. Numpad 5 waits.
 - Click or tap a reachable tile to travel there.
 - Open Bag or Spells from the floating action bar.
+- Bag shows item icons and a hero with equipment slots. Select a slot to inspect or remove its item.
+- Use minus/plus controls or type a quantity when buying, selling, or discarding stacked items. Discard requires confirmation.
 - Click a spell shortcut, then click a visible target. Self spells cast with one click.
 - Pin favorite spells in the spellbook. Without favorites, the bar shows up to six learned spells.
-- Press F to choose a ranged weapon. Click a visible enemy to fire.
+- Press F to aim the equipped ranged weapon, then click a visible enemy to fire.
+  Without a ranged weapon equipped, Fire selects the first throwable item in the pack.
 - Press T to talk or inspect nearby objects.
 - Open Actions for a persistent panel with icons and labels. Wait is inside this panel.
 - Use Wait, Search, or Disarm without reopening Actions. The map stays usable while the panel is open.
@@ -50,6 +55,7 @@ The `dist/` directory contains the static site. The build supports hosting benea
 The hero moves smoothly between tiles. The camera follows near the edge of the safe viewing area.
 Combat shows attack, hit, and miss effects. Enemy health bars sit inside their tiles and remain visible beneath neighboring characters.
 Mice, rats, insects, humanoids, giants, and dragons use different sizes. Interactions show a brief pulse.
+Hrungnir stands about 4.4 times as tall as an ordinary warrior. Click his visible body to target him.
 Living creatures have idle motion. Equipped items change the hero appearance.
 Terrain has coordinate-based variation, moving foliage, and water ripples.
 Dungeon torches cast local light. Outdoor daylight uses game time, which advances through actions and rest.
@@ -121,6 +127,9 @@ npm run e2e:campaign2
 npm run e2e:expansion
 npm run e2e:traps
 npm run e2e:effects
+npm run e2e:recovery
+npm run e2e:inventory
+npm run e2e:bosses
 ```
 
 Campaign browser tests include assisted phases with edited characters. They do not establish full-campaign balance.

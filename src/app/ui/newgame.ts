@@ -359,6 +359,7 @@ export interface DeathDialogData {
   recentEvents?: string[];
   onNewGame: () => void;
   onLoad: () => void;
+  onDismiss?: () => void;
 }
 
 export function buildDeathContent(data: DeathDialogData): HTMLElement {
@@ -421,6 +422,7 @@ export function openDeathDialog(data: DeathDialogData): ModalHandle {
     title: 'You are dead',
     content: buildDeathContent(data),
     className: 'dialog-death',
+    onClose: data.onDismiss,
   });
   return modal;
 }

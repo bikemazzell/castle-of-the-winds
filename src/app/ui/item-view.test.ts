@@ -85,3 +85,12 @@ it('shows item tradeoffs and per-instance color', () => {
   expect(el.textContent).toContain(def.description);
   expect(el.textContent).toContain('Color: gold');
 });
+
+it('uses distinct pixel silhouettes while keeping item names readable', () => {
+  const sword = itemRow({ item: invItem(weapon('Long Sword', 8)), def: weapon('Long Sword', 8) });
+  const drink = itemRow({ item: invItem(potion()), def: potion() });
+  expect(sword.querySelector('.item-icon svg rect')).not.toBeNull();
+  expect(sword.querySelector('.item-icon svg')!.innerHTML).not.toBe(drink.querySelector('.item-icon svg')!.innerHTML);
+  expect(sword.querySelector('.item-icon')!.getAttribute('aria-hidden')).toBe('true');
+  expect(sword.textContent).toContain('Long Sword');
+});

@@ -1,7 +1,8 @@
+import { spawnMonsterState } from '../../engine/combat';
 import { describe, it, expect, vi } from 'vitest';
 import { createEmptyLevel, idx, type Level } from '../../engine/map';
 import { cameraFor, type Camera } from './camera';
-import { createRenderer, renderFrame, type Ctx2D } from './renderer';
+import { createRenderer, renderFrame, enlargedMonsterAt, type Ctx2D } from './renderer';
 
 interface DrawImageCall {
   img: unknown;
@@ -706,4 +707,60 @@ it('moves a gold projectile across visible cells and hides it behind fog', () =>
     expect(pixel.x+pixel.w<=hidden.x || pixel.x>=hidden.x+TILE).toBe(true);
   }
   expect(draw(Number.NaN)).toHaveLength(0);
+});
+
+describe('giant bosses', () => {
+  const boss = { id: 88, kind: 'monster' as const, name: 'Hrungnir', x: 5, y: 10, monster: {...spawnMonsterState('Hrungnir'), hp:50,maxHp:100} };
+  const camera = cameraFor({x:5,y:10}, VP, TILE);
+  const image = {tag:'boss'};
+  const styles = {...STYLES, sprites:{...STYLES.sprites, 'creature:hrungnir':image}};
+  const scene = () => ({level:fixtureLevel(), seen:allSeen(), visible:allSeen(), player:{x:1,y:1}, entities:[boss], visual:{seed:1,turn:0,now:0,reduced:true}});
+  it('draws a large grounded body and readable bar even when the anchor is below the viewport', () => {
+    const input=scene(); input.entities[0]={...boss,y:21};
+    const ctx=new FakeCtx(); renderFrame(ctx,camera,input,styles);
+    const draw=ctx.images.find(i=>i.img===image)!;
+    expect(draw.h).toBeGreaterThan(TILE*3);
+    expect(draw.y).toBeLessThan(VP.height);
+    expect(draw.y+draw.h).toBe(22*TILE);
+    expect(ctx.fills.find(f=>f.color==='#151a20')!.w).toBeGreaterThan(TILE);
+  });
+  it('keeps a clipped head health bar on screen and never reveals a hidden boss', () => {
+    const input=scene();input.entities[0]={...boss,y:1};
+    const ctx=new FakeCtx();renderFrame(ctx,camera,input,styles);
+    expect(ctx.fills.find(f=>f.color==='#151a20')!.y).toBeGreaterThanOrEqual(0);
+    input.visible[idx(5,1)]=0;const hidden=new FakeCtx();renderFrame(hidden,camera,input,styles);
+    expect(hidden.images.some(i=>i.img===image)).toBe(false);
+  });
+  it('selects the front painted monster when giant sprites overlap', () => {
+    const input=scene();input.entities.push({...boss,id:89,x:6});
+    expect(enlargedMonsterAt(camera,input,195,310)).toEqual({x:6,y:10});
+  });
+  it('does not target through an ordinary monster painted in front of a giant', () => {
+    const input=scene();input.entities.push({...boss,id:89,name:'Evil Warrior',y:9});
+    expect(enlargedMonsterAt(camera,input,176,300)).toEqual({x:5,y:9});
+  });
+  it('keeps the hero cell clickable in front of a boss', () => {
+    const input=scene();input.player={x:5,y:9};
+    expect(enlargedMonsterAt(camera,input,176,300)).toEqual({x:5,y:9});
+  });
+  it('respects NPC and giant draw order for overlapping cells', () => {
+    const input=scene();
+    const npc: import('../../engine/map').Entity={id:90,name:'Traveler',kind:'npc',x:5,y:9,npc:{role:'traveler',giftClaimed:false,stock:[]}};
+    const entities: import('../../engine/map').Entity[]=[boss,npc];
+    expect(enlargedMonsterAt(camera,{...input,entities},176,300)).toEqual({x:5,y:9});
+    expect(enlargedMonsterAt(camera,{...input,entities:entities.reverse()},176,300)).toEqual({x:5,y:10});
+  });
+  it('preserves the same grounded giant dimensions with reduced motion at different times', () => {
+    const input=scene();const first=new FakeCtx();renderFrame(first,camera,input,styles);
+    input.visual.now=9999;const second=new FakeCtx();renderFrame(second,camera,input,styles);
+    expect(second.images.find(i=>i.img===image)).toEqual(first.images.find(i=>i.img===image));
+  });
+  it('targets painted giant bodies at their anchor and ignores transparent corners and fog', () => {
+    const input=scene();
+    // Center chest is more than a tile above the feet.
+    expect(enlargedMonsterAt(camera,input,176,290)).toEqual({x:5,y:10});
+    expect(enlargedMonsterAt(camera,input,126,251)).toBeNull();
+    input.visible[idx(5,10)]=0;
+    expect(enlargedMonsterAt(camera,input,176,290)).toBeNull();
+  });
 });

@@ -25,7 +25,7 @@ These entries describe this project's implementation. They do not establish that
 | Platform | Browser application with static hosting, keyboard, mouse, and touch controls. | `README.md`, `src/app/` |
 | Artwork | All terrain, actors, equipment, and application icons use new pixel art. Related creatures share base forms with visible differences. | `src/app/render/` |
 | Hero appearance | Equipped armor, clothing, weapons, shields, headwear, and accessories change the hero sprite. Gender choices have distinct hair. | `src/app/render/hero-art.ts` |
-| Creature presentation | Creatures have idle motion and different sizes. Enemy health bars remain visible above other actors. | `src/app/render/` |
+| Creature presentation | Creatures have idle motion and different sizes. Hrungnir stands about 4.4 times as tall as an ordinary warrior. Giant bosses accept clicks on their visible bodies. Enemy health bars remain visible above other actors. | `src/app/render/` |
 | Movement | Actors move smoothly between tile centers. The camera follows within a stable viewing area. | `src/app/render/`, `src/app/controller.ts` |
 | Combat presentation | Attacks, hits, misses, projectiles, and interactions have visual effects. | `src/app/render/` |
 | Terrain | Ground and walls vary by location. Grass, foliage, and water animate. Stores have distinct accents, doors, and signs. | `src/app/render/` |
@@ -37,11 +37,13 @@ These entries describe this project's implementation. They do not establish that
 | Interaction | Interact uses an object underfoot first, then requests a direction key or adjacent map click without a modal. | `src/app/controller.ts` |
 | Brief messages | NPC replies and level gains appear in the log. Merchants open trade directly. Empty weapon guidance uses the log. | `src/app/controller.ts` |
 | Idle actions | Optional automatic rest and search have separate delays. They pause during interruptions and write to the log. | `src/app/controller.ts` |
+| Inventory | Item icons accompany names. A hero preview sits among equipment slots. Stack selling and confirmed discard use shared minus/plus quantity controls. | `src/app/ui/inventory.ts`, `src/app/ui/quantity.ts` |
+| Death recovery | Closing the death dialog returns to the title screen without overwriting saves. | `src/app/controller.ts` |
 | Shopping | Stackable items support quantities from 1 to 999, with minus/plus controls and a total price. Purchases show receipts and require a new selection before another purchase. Sell All previews the sale and excludes equipped items. | `src/app/ui/merchant.ts` |
 | Debug controls | A pause-menu editor can reveal maps and change character values, inventory, and gold. | `src/app/devtools.ts`, `src/app/editor/` |
 | Saves | Browser storage, separate campaign slots, autosaves, and file import/export replace original save handling. | `src/app/saves/`, `src/engine/save.ts` |
 | Campaign import | A living Part One character can enter Part Two. Import remaps known spells and starts fresh quest progress. | `src/app/import.ts` |
-| Ranged weapons | Bows, crossbows, hand cannons, and matching ammunition use visible targets and clear firing paths. Cannons alert nearby enemies. | `src/engine/ranged.ts` |
+| Ranged weapons | Bows, crossbows, hand cannons, and matching ammunition use visible targets and clear firing paths. Cannons alert nearby enemies. Fire aims the equipped ranged weapon directly, or the first carried throwable if none is equipped. | `src/engine/ranged.ts` |
 | Improvised weapons | Throwable rocks and bones, bone clubs, and two-tile whips expand the weapon choices. | `src/engine/ranged.ts`, `src/engine/oddities.ts` |
 | Consumables | Mead, spirits, Sparkleaf, Dreamcap, and Mellowroot add temporary benefits and penalties. Sparkleaf has a crash. Dreamcap changes the visible colors. | `src/engine/oddities.ts` |
 | Cosmetic items | Dyes change underwear colors. Polish changes helmet colors without changing combat values. | `src/engine/oddities.ts` |

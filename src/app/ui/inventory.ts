@@ -11,6 +11,9 @@
  * closes and reopens the dialog after every action.
  */
 import type { EquipSlot, Inventory, ItemDefRuntime, Player } from '../../engine/types';
+import { heroAppearance, heroPixels } from '../render/hero-art';
+import { itemIcon, pixelSvg } from './item-icons';
+import { quantityControl } from './quantity';
 import { SLOT_LABELS, itemDetails, itemRow } from './item-view';
 
 export interface InventoryPanelData {
@@ -26,7 +29,7 @@ export interface InventoryDialogActions {
   onEquip: (uid: string) => void;
   onUnequip: (slot: EquipSlot) => void;
   onUse: (uid: string) => void;
-  onDiscard: (uid: string) => void;
+  onDiscard: (uid: string, count?: number) => void;
   onAutoArrange: () => void;
 }
 
@@ -56,6 +59,8 @@ export function createInventoryPanel(data: InventoryPanelData): InventoryPanel {
   let selectedUid: string | null = null;
   let selectedSlot: EquipSlot | null = null;
   let discardUid: string | null = null;
+  let discardCount = 1;
+  let discardAvailable = 0;
 
   const el = document.createElement('div');
   el.className = 'inventory-panel';
@@ -155,6 +160,7 @@ export function createInventoryPanel(data: InventoryPanelData): InventoryPanel {
     tabEquip.classList.toggle('active', tab === 'equipment');
     packList.style.display = tab === 'pack' ? '' : 'none';
     equipList.style.display = tab === 'equipment' ? '' : 'none';
+    el.classList.toggle('show-equipment', tab === 'equipment');
     filters.hidden = tab !== 'pack';
     sorts.hidden = tab !== 'pack';
   }
@@ -193,7 +199,7 @@ export function createInventoryPanel(data: InventoryPanelData): InventoryPanel {
     renderPack(announce);
     renderEquipment();
     if (active && !active.isConnected) {
-      const replacement = [...el.querySelectorAll<HTMLElement>('button, [tabindex]')].find((candidate) =>
+      const replacement = [...el.querySelectorAll<HTMLElement>('button, input, [tabindex]')].find((candidate) =>
         field ? candidate.dataset.field === field : action ? candidate.dataset.action === action :
           uid ? candidate.closest<HTMLElement>('[data-uid]')?.dataset.uid === uid :
             slot ? candidate.closest<HTMLElement>('[data-slot]')?.dataset.slot === slot : false,
@@ -268,6 +274,10 @@ export function createInventoryPanel(data: InventoryPanelData): InventoryPanel {
   function renderEquipment(): void {
     const inv = currentInv;
     equipList.replaceChildren();
+    const hero = document.createElement('div');
+    hero.className = 'equipment-hero';
+    hero.append(pixelSvg(heroPixels(heroAppearance(data.player.gender, inv.equipment, defs, data.player.underwearColor))));
+    equipList.append(hero);
     for (const slot of SLOT_ORDER_KEYS) {
       const item = inv.equipment[slot];
       const row = document.createElement('div');
@@ -278,12 +288,14 @@ export function createInventoryPanel(data: InventoryPanelData): InventoryPanel {
       label.textContent = SLOT_LABELS[slot];
       const value = document.createElement('span');
       value.className = 'slot-value';
-      value.textContent = item ? (defs[item.defId]?.name ?? item.defId) : '—';
-      row.append(label, value);
+      value.textContent = item ? (defs[item.defId]?.name ?? item.defId) : 'Empty';
+      const icon = itemIcon(item ? defs[item.defId] : undefined, slot);
+      row.append(label, icon, value);
       if (item) {
         const select = document.createElement('button');
         select.type = 'button';
-        select.textContent = 'View';
+        select.setAttribute('aria-label', `${SLOT_LABELS[slot]}: ${value.textContent}`);
+        select.append(label, icon, value);
         select.addEventListener('click', () => {
           selectedSlot = slot;
           selectedUid = null;
@@ -328,7 +340,9 @@ export function createInventoryPanel(data: InventoryPanelData): InventoryPanel {
       }
     }
 
-    if (discardUid !== itemUid) discardUid = null;
+    if (discardUid !== itemUid) { discardUid = null; discardCount = 1; }
+    const packItem = inv.pack.find(item => item.uid === itemUid);
+    if (discardUid && packItem?.count !== discardAvailable) { discardUid = null; discardCount = 1; }
 
     if (!def) {
       const hint = document.createElement('p');
@@ -350,7 +364,7 @@ export function createInventoryPanel(data: InventoryPanelData): InventoryPanel {
       detailsHost.appendChild(btn);
     }
 
-    if (itemUid) {
+    if (itemUid && packItem) {
       // F21: the operation is destructive — Discard, with an explicit
       // confirmation naming the item. No floor storage exists; a future
       // drop-and-recover feature needs its own specification.
@@ -359,13 +373,14 @@ export function createInventoryPanel(data: InventoryPanelData): InventoryPanel {
       discardArea.className = 'drop-area';
       const note = document.createElement('p');
       note.dataset.field = 'drop-note';
-      note.textContent = 'Discarding destroys the item — it cannot be recovered. Floor storage does not exist yet.';
+      note.textContent = 'Discarded items cannot be recovered.';
       const discard = document.createElement('button');
       discard.type = 'button';
       discard.textContent = 'Discard';
       discard.dataset.action = 'discard';
       discard.addEventListener('click', () => {
         discardUid = itemUid;
+        discardAvailable = packItem.count;
         renderDetails();
         detailsHost.querySelector<HTMLButtonElement>('[data-action="discard-confirm"]')?.focus();
       });
@@ -374,8 +389,18 @@ export function createInventoryPanel(data: InventoryPanelData): InventoryPanel {
         confirmBtn.type = 'button';
         confirmBtn.className = 'danger';
         confirmBtn.dataset.action = 'discard-confirm';
-        confirmBtn.textContent = `Discard ${itemName}?`;
-        confirmBtn.addEventListener('click', () => actions?.onDiscard(itemUid));
+        confirmBtn.textContent = `Discard ${itemName}${packItem.count > 1 ? ` ×${discardCount}` : ''}?`;
+        let submitted = false;
+        const count = discardCount;
+        const available = discardAvailable;
+        confirmBtn.addEventListener('click', () => {
+          if (submitted || !currentInv.pack.some(item => item.uid === itemUid && item.count === available)) return;
+          submitted = true;
+          confirmBtn.disabled = true;
+          discardUid = null;
+          discardCount = 1;
+          actions?.onDiscard(itemUid, count);
+        });
         const cancel = document.createElement('button');
         cancel.type = 'button';
         cancel.dataset.action = 'discard-cancel';
@@ -387,9 +412,17 @@ export function createInventoryPanel(data: InventoryPanelData): InventoryPanel {
         });
         discardArea.append(note, confirmBtn, cancel);
       } else {
-        discardArea.append(note, discard);
+        discardArea.append(note);
+        if (packItem.count > 1) discardArea.append(quantityControl({ field: 'discard-quantity', max: packItem.count, value: discardCount,
+          onChange: (value, valid) => { discardCount = value; discard.disabled = !valid; },
+        }).el);
+        discardArea.append(discard);
       }
       detailsHost.appendChild(discardArea);
+    } else if (selectedSlot) {
+      const note = document.createElement('p');
+      note.textContent = 'Unequip this item before discarding it.';
+      detailsHost.append(note);
     }
   }
 

@@ -26,7 +26,10 @@
     "e2e:release": "tsx tools/e2e/run-release.ts",
     "e2e:expansion": "tsx tools/e2e/run-expansion.ts",
     "e2e:traps": "tsx tools/e2e/run-traps.ts",
-    "e2e:effects": "tsx tools/e2e/run-effects.ts"
+    "e2e:effects": "tsx tools/e2e/run-effects.ts",
+    "e2e:recovery": "tsx tools/e2e/run-recovery.ts",
+    "e2e:inventory": "tsx tools/e2e/run-inventory.ts",
+    "e2e:bosses": "tsx tools/e2e/run-giant-bosses.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

@@ -2541,6 +2541,22 @@ describe('canvas device-pixel correctness (F06/F16, Task 4)', () => {
     Object.defineProperty(window, 'devicePixelRatio', { value: 1, configurable: true });
   });
 
+  it('ignores a stale painted boss after the current level is replaced before drawing', () => {
+    const c=bootstrap({realCamera:true,reducedMotion:()=>true});const world=beginGame(c);
+    Object.assign(world.player,{x:10,y:10});
+    const level=world.levels.get(world.current)!;level.entities.clear();
+    level.entities.set(80,{id:80,name:'Hrungnir',kind:'monster',x:11,y:10});
+    world.visible.fill(1);world.seen.get(world.current)!.fill(1);
+    sizeCanvas();const canvas=root.querySelector('canvas')!;stubCtx(canvas,makeCtxSpy());
+    window.dispatchEvent(new Event('resize'));
+    const cam=hooks().camera()!;
+    const hover=():void=>{const event=new Event('pointermove',{bubbles:true});for(const [key,value] of Object.entries({pointerId:1,pointerType:'mouse',buttons:0,clientX:(11.5-cam.originX)*cam.tile,clientY:(9.4-cam.originY)*cam.tile}))Object.defineProperty(event,key,{value});canvas.dispatchEvent(event);};
+    const state=()=> (window as unknown as {__cotw:{travel:{state:()=>{hover:{x:number;y:number}|null}}}}).__cotw.travel.state();
+    hover();expect(state().hover).toEqual({x:11,y:10});
+    world.levels.set(world.current,{...level,entities:new Map()});
+    hover();expect(state().hover).toEqual({x:11,y:9});
+  });
+
   it.each([1, 2, 2.625])('drawing transform matches device pixel ratio %s', (dpr) => {
     setDpr(dpr);
     const spy = makeCtxSpy();
@@ -3237,7 +3253,7 @@ it('Sell All clears the pack at the quoted price and preserves equipped items', 
   expect(world.inventory.equipment.weapon?.uid).toBe('equipped-test');
 });
 
-it('offers a ranged weapon selector and enters aiming without spending a turn', () => {
+it('aims a carried throwable directly without a modal or spending a turn', () => {
   const c = bootstrap();
   const w = beginGame(c);
   pickup(w.inventory, w.player, 'x-rock', w.data.items, 3);
@@ -3246,7 +3262,7 @@ it('offers a ranged weapon selector and enters aiming without spending a turn', 
   expect(fire).not.toBeNull();
   fire!.click();
   const turn = w.turn;
-  document.querySelector<HTMLButtonElement>('[data-ranged]')!.click();
+  expect(document.querySelector('.modal-overlay')).toBeNull();
   expect(document.querySelector('.target-bar')?.textContent).toContain('Rock');
   expect(w.turn).toBe(turn);
 });
@@ -3534,4 +3550,27 @@ it('keeps Actions open after underfoot interaction and canceled direction select
  expect(level.props[0]!.exhausted).toBe(true);expect(palette.hidden).toBe(false);
  palette.querySelector<HTMLButtonElement>('[data-action="interact"]')!.click();
  window.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape'}));expect(palette.hidden).toBe(false);
+});
+
+
+it('Fire prefers the equipped ranged weapon and reports missing ammunition inline',()=>{
+ const c=bootstrap();const w=beginGame(c);pickup(w.inventory,w.player,'x-rock',w.data.items,2);
+ w.inventory.equipment.weapon={uid:'ready-bow',defId:'x-bow',count:1};
+ const fire=()=>window.dispatchEvent(new KeyboardEvent('keydown',{key:'f'}));
+ const turn=w.turn;fire();
+ expect(document.querySelector('.modal-overlay')).toBeNull();expect(document.querySelector('.target-bar')).toBeNull();
+ expect(w.log.at(-1)?.text).toContain('Arrow');expect(w.turn).toBe(turn);
+ pickup(w.inventory,w.player,'x-arrow',w.data.items,3);fire();
+ expect(document.querySelector('.target-bar')?.textContent).toContain('Short Bow');
+ expect(document.querySelector('.modal-overlay')).toBeNull();expect(w.turn).toBe(turn);
+});
+
+it.each(['close','escape','load-cancel'])('returns to usable title after death via %s without saving the dead hero',path=>{
+ const c=bootstrap();const w=beginGame(c);w.player.hp=0;c.dispatchAction({type:'WAIT'});
+ if(path==='close')document.querySelector<HTMLButtonElement>('.dialog-death [data-action="close"]')!.click();
+ else if(path==='escape')document.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}));
+ else {document.querySelector<HTMLButtonElement>('.dialog-death [data-action="load"]')!.click();closeAllModals();}
+ expect(c.getWorld()).toBeNull();expect(c.isDead()).toBe(false);
+ const button=root.querySelector<HTMLButtonElement>('[data-action="new-game"]')!;expect(button).not.toBeNull();button.click();
+ expect(document.querySelector('.dialog-title')?.textContent).toBe('New Game');
 });

@@ -1,3 +1,4 @@
+import { creaturePixels } from './pixel-art';
 import { drawTrap } from './trap-art';
 import { drawActionFeedback, type ActionCue } from './action-feedback';
 import { movementPosition } from './movement';
@@ -143,13 +144,42 @@ function actorOffset(scene: SceneInput, position: Point, motion?: ActorMotion): 
   return { x: 0, y: 0 };
 }
 
-function drawActor(ctx: Ctx2D, camera: Camera, scene: SceneInput, position: Point, image: unknown, motion?: ActorMotion, identity = 0, idle = 'breathe', scale = 1): void {
+function actorBounds(camera: Camera, scene: SceneInput, position: Point, motion?: ActorMotion, identity = 0, idle = 'breathe', scale = 1): {x:number;y:number;width:number;height:number} {
   const cell = camera.worldToScreen(position.x, position.y);
   const offset = actorOffset(scene, position, motion);
-  // Integer offsets retain the original pixel edges through every frame.
   const pose = scene.visual && !motion ? idlePose(idle, scene.visual.now, identity, scene.visual.reduced) : {x:0,y:0,height:1,width:1};
   const height = Math.round(camera.tile * scale * pose.height), width = Math.round(camera.tile * scale * pose.width);
-  ctx.drawImage(image, cell.x + Math.round(offset.x * camera.tile + (camera.tile-width)/2), cell.y + Math.round(offset.y * camera.tile + pose.y*camera.tile + camera.tile-height), width, height);
+  return {x:cell.x + Math.round(offset.x * camera.tile + (camera.tile-width)/2), y:cell.y + Math.round(offset.y * camera.tile + pose.y*camera.tile + camera.tile-height), width, height};
+}
+
+function drawActor(ctx: Ctx2D, camera: Camera, scene: SceneInput, position: Point, image: unknown, motion?: ActorMotion, identity = 0, idle = 'breathe', scale = 1): void {
+  const bounds = actorBounds(camera, scene, position, motion, identity, idle, scale);
+  ctx.drawImage(image, bounds.x, bounds.y, bounds.width, bounds.height);
+}
+
+/** Pick actors in reverse draw order. Hero and NPC cells retain their interaction targets. */
+export function enlargedMonsterAt(camera: Camera, scene: SceneInput, x: number, y: number): Point | null {
+  const inDisplayedCell = (position: Point, motion?: ActorMotion): boolean => {
+    const offset = actorOffset(scene, position, motion);
+    const cell = camera.worldToScreen(position.x + offset.x, position.y + offset.y);
+    return x >= cell.x && x < cell.x + camera.tile && y >= cell.y && y < cell.y + camera.tile;
+  };
+  // The hero draws after every other actor. Keep stairs and own-cell interactions accessible.
+  if (inDisplayedCell(scene.player, scene.animation?.player)) return {...scene.player};
+  for (const entity of [...scene.entities ?? []].reverse()) {
+    if (!isVisible(scene.visible, entity.x, entity.y)) continue;
+    if (entity.kind === 'npc') {
+      if (inDisplayedCell(entity, scene.animation?.entities?.get(entity.id))) return {x:entity.x,y:entity.y};
+      continue;
+    }
+    if (entity.kind !== 'monster') continue;
+    const appearance = creatureAppearance(entity.name);
+    const bounds = actorBounds(camera, scene, entity, scene.animation?.entities?.get(entity.id), entity.id, appearance.idle, appearance.scale);
+    const px = (x - bounds.x) * 32 / bounds.width, py = (y - bounds.y) * 32 / bounds.height;
+    if (px < 0 || py < 0 || px >= 32 || py >= 32) continue;
+    if (creaturePixels(entity.name).some(([left,top,width,height]) => px >= left && px < left+width && py >= top && py < top+height)) return {x:entity.x,y:entity.y};
+  }
+  return null;
 }
 const ENTITY_COLORS: Record<string, string> = {
   monster: '#e05656',
@@ -396,13 +426,14 @@ export function renderFrame(
   for (const entity of scene.entities ?? []) {
     if (!scene.visible[idx(entity.x, entity.y)]) continue;
       if (entity.kind === 'monster' && entity.monster && entity.monster.hp > 0 && entity.monster.maxHp > 0) {
-        const offset = actorOffset(scene, entity, scene.animation?.entities?.get(entity.id));
-        const point = camera.worldToScreen(entity.x + offset.x, entity.y + offset.y);
-        const width = Math.round(tile * 0.625);
+        const appearance = creatureAppearance(entity.name);
+        const bounds = actorBounds(camera, scene, entity, scene.animation?.entities?.get(entity.id), entity.id, appearance.idle, appearance.scale);
+        if (bounds.x + bounds.width <= 0 || bounds.x >= camera.cols * tile || bounds.y + bounds.height <= 0 || bounds.y >= camera.rows * tile) continue;
+        const width = Math.round(tile * (appearance.scale > 1 ? 1.5 : 0.625));
         const height = Math.max(2, Math.floor(tile / 16));
         const fraction = Math.max(0, Math.min(1, entity.monster.hp / entity.monster.maxHp));
-        const x = point.x + (tile - width) / 2;
-        const y = point.y + tile - Math.round(tile * creatureAppearance(entity.name).scale) + 2;
+        const x = Math.max(1, Math.min(camera.cols * tile - width - 1, bounds.x + (bounds.width - width) / 2));
+        const y = Math.max(1, bounds.y + 2);
         ctx.fillStyle = '#151a20';
         ctx.fillRect(x - 1, y - 1, width + 2, height + 2);
         ctx.fillStyle = fraction > 0.5 ? '#80b879' : fraction > 0.25 ? '#e5bd62' : '#d66b65';

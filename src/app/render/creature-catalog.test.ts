@@ -42,7 +42,7 @@ it('distinguishes Part Two demons, kings, and the two-headed giant', async () =>
     expect(new Set(names.map(n=>JSON.stringify(creaturePixels(n)))).size).toBe(names.length);
 });
 
-it('sizes small animals, insects, humanoids, and large creatures within one tile', () => {
+it('sizes small animals, insects, humanoids, and large creatures with larger bosses', () => {
     const scale = (name: string) => creatureAppearance(name).scale;
     expect(scale('Cellar Mouse')).toBe(0.35);
     expect(scale('Giant Rat')).toBe(0.5);
@@ -52,6 +52,18 @@ it('sizes small animals, insects, humanoids, and large creatures within one tile
     expect(scale('Ancient Red Dragon')).toBe(1);
     for (const { name } of monsters.records) {
         expect(scale(name)).toBeGreaterThan(0);
-        expect(scale(name)).toBeLessThanOrEqual(1);
+        if (creatureAppearance(name).family !== 'boss') expect(scale(name)).toBeLessThanOrEqual(1);
     }
+});
+
+it('makes Hrungnir four to five times the painted height of an ordinary warrior', async () => {
+    const { creaturePixels } = await import('./pixel-art');
+    const height = (name: string) => {
+        const pixels = creaturePixels(name);
+        return (Math.min(32, Math.max(...pixels.map(p => p[1] + p[3]))) - Math.max(0, Math.min(...pixels.map(p => p[1])))) * creatureAppearance(name).scale;
+    };
+    expect(height('Hrungnir') / height('Evil Warrior')).toBeGreaterThanOrEqual(4);
+    expect(height('Hrungnir') / height('Evil Warrior')).toBeLessThanOrEqual(5);
+    expect(creatureAppearance('The Demon Lord Surtur').scale).toBeGreaterThan(3);
+    for (const name of ['Utgardhalok', 'Rungnir', 'Thrym', 'Thiassa']) expect(creatureAppearance(name).scale).toBeGreaterThan(2);
 });

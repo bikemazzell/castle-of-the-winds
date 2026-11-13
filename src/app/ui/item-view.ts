@@ -6,6 +6,7 @@
  * an equipment comparison. Comparisons show raw engine values with a
  * better-direction hint — no invented single "power score" (plan §8).
  */
+import { itemIcon } from './item-icons';
 import type { EquipSlot, InventoryItem, ItemDefRuntime } from '../../engine/types';
 
 /** Slots named as the player sees them; the two ring slots are distinct. */
@@ -64,10 +65,7 @@ export function itemRow({ item, def, equipped, selected, onClick }: ItemRowOptio
 }
 
 function attachRowContent(host: HTMLElement, item: InventoryItem, def: ItemDefRuntime, equipped?: boolean): void {
-  const icon = document.createElement('span');
-  icon.className = 'item-icon';
-  icon.style.background = kindColor(def);
-  icon.setAttribute('aria-hidden', 'true');
+  const icon = itemIcon(def);
   const name = document.createElement('span');
   name.className = 'item-name';
   name.textContent = def.name;
@@ -140,7 +138,7 @@ export function itemDetails({ def, item, equipped }: ItemDetailsOptions): HTMLEl
 
   const name = document.createElement('h4');
   name.className = 'item-details-name';
-  name.textContent = def.name;
+  name.append(itemIcon(def), document.createTextNode(def.name));
   el.appendChild(name);
 
   const kindLine = document.createElement('p');

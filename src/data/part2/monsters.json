@@ -1,0 +1,430 @@
+{
+  "version": 1,
+  "source": {
+    "exe": "CASTLE2.EXE",
+    "sha256": "a056ac0947c967a26e6c5ece67893b7f6562611ef08736f87ab1d96c2d05da2e",
+    "tableOffset": 120000,
+    "decoderVersion": "roster-name-match/1"
+  },
+  "records": [
+    {
+      "id": "m-kobold",
+      "name": "Kobold"
+    },
+    {
+      "id": "m-goblin",
+      "name": "Goblin"
+    },
+    {
+      "id": "m-hobgoblin",
+      "name": "Hobgoblin"
+    },
+    {
+      "id": "m-large-snake",
+      "name": "Large Snake"
+    },
+    {
+      "id": "m-giant-rat",
+      "name": "Giant Rat"
+    },
+    {
+      "id": "m-goblin-fighter",
+      "name": "Goblin Fighter"
+    },
+    {
+      "id": "m-skeleton",
+      "name": "Skeleton"
+    },
+    {
+      "id": "m-giant-red-ant",
+      "name": "Giant Red Ant"
+    },
+    {
+      "id": "m-wild-dog",
+      "name": "Wild Dog"
+    },
+    {
+      "id": "m-giant-trapdoor-spider",
+      "name": "Giant Trapdoor Spider"
+    },
+    {
+      "id": "m-carrion-creeper",
+      "name": "Carrion Creeper"
+    },
+    {
+      "id": "m-huge-ogre",
+      "name": "Huge Ogre"
+    },
+    {
+      "id": "m-walking-corpse",
+      "name": "Walking Corpse"
+    },
+    {
+      "id": "m-huge-lizard",
+      "name": "Huge Lizard"
+    },
+    {
+      "id": "m-ancient-red-dragon",
+      "name": "Ancient Red Dragon"
+    },
+    {
+      "id": "m-ancient-blue-dragon",
+      "name": "Ancient Blue Dragon"
+    },
+    {
+      "id": "m-giant-bat",
+      "name": "Giant Bat"
+    },
+    {
+      "id": "m-eerie-ghost",
+      "name": "Eerie Ghost"
+    },
+    {
+      "id": "m-giant-scorpion",
+      "name": "Giant Scorpion"
+    },
+    {
+      "id": "m-slime",
+      "name": "Slime"
+    },
+    {
+      "id": "m-gruesome-troll",
+      "name": "Gruesome Troll"
+    },
+    {
+      "id": "m-young-red-dragon",
+      "name": "Young Red Dragon"
+    },
+    {
+      "id": "m-young-adult-red-dragon",
+      "name": "Young Adult Red Dragon"
+    },
+    {
+      "id": "m-adult-red-dragon",
+      "name": "Adult Red Dragon"
+    },
+    {
+      "id": "m-old-red-dragon",
+      "name": "Old Red Dragon"
+    },
+    {
+      "id": "m-very-old-red-dragon",
+      "name": "Very Old Red Dragon"
+    },
+    {
+      "id": "m-young-blue-dragon",
+      "name": "Young Blue Dragon"
+    },
+    {
+      "id": "m-young-adult-blue-dragon",
+      "name": "Young Adult Blue Dragon"
+    },
+    {
+      "id": "m-adult-blue-dragon",
+      "name": "Adult Blue Dragon"
+    },
+    {
+      "id": "m-old-blue-dragon",
+      "name": "Old Blue Dragon"
+    },
+    {
+      "id": "m-very-old-blue-dragon",
+      "name": "Very Old Blue Dragon"
+    },
+    {
+      "id": "m-fire-giant",
+      "name": "Fire Giant"
+    },
+    {
+      "id": "m-frost-giant",
+      "name": "Frost Giant"
+    },
+    {
+      "id": "m-hill-giant",
+      "name": "Hill Giant"
+    },
+    {
+      "id": "m-stone-giant",
+      "name": "Stone Giant"
+    },
+    {
+      "id": "m-young-white-dragon",
+      "name": "Young White Dragon"
+    },
+    {
+      "id": "m-young-adult-white-dragon",
+      "name": "Young Adult White Dragon"
+    },
+    {
+      "id": "m-adult-white-dragon",
+      "name": "Adult White Dragon"
+    },
+    {
+      "id": "m-old-white-dragon",
+      "name": "Old White Dragon"
+    },
+    {
+      "id": "m-very-old-white-dragon",
+      "name": "Very Old White Dragon"
+    },
+    {
+      "id": "m-ancient-white-dragon",
+      "name": "Ancient White Dragon"
+    },
+    {
+      "id": "m-young-green-dragon",
+      "name": "Young Green Dragon"
+    },
+    {
+      "id": "m-young-adult-green-dragon",
+      "name": "Young Adult Green Dragon"
+    },
+    {
+      "id": "m-adult-green-dragon",
+      "name": "Adult Green Dragon"
+    },
+    {
+      "id": "m-old-green-dragon",
+      "name": "Old Green Dragon"
+    },
+    {
+      "id": "m-very-old-green-dragon",
+      "name": "Very Old Green Dragon"
+    },
+    {
+      "id": "m-ancient-green-dragon",
+      "name": "Ancient Green Dragon"
+    },
+    {
+      "id": "m-manticore",
+      "name": "Manticore"
+    },
+    {
+      "id": "m-gelatinous-glob",
+      "name": "Gelatinous Glob"
+    },
+    {
+      "id": "m-wizard",
+      "name": "Wizard"
+    },
+    {
+      "id": "m-spectre",
+      "name": "Spectre"
+    },
+    {
+      "id": "m-vampire",
+      "name": "Vampire"
+    },
+    {
+      "id": "m-smirking-sneak-thief",
+      "name": "Smirking Sneak Thief"
+    },
+    {
+      "id": "m-viper",
+      "name": "Viper"
+    },
+    {
+      "id": "m-gray-wolf",
+      "name": "Gray Wolf"
+    },
+    {
+      "id": "m-white-wolf",
+      "name": "White Wolf"
+    },
+    {
+      "id": "m-brown-bear",
+      "name": "Brown Bear"
+    },
+    {
+      "id": "m-cave-bear",
+      "name": "Cave Bear"
+    },
+    {
+      "id": "m-magma-elemental",
+      "name": "Magma Elemental"
+    },
+    {
+      "id": "m-ice-elemental",
+      "name": "Ice Elemental"
+    },
+    {
+      "id": "m-dust-elemental",
+      "name": "Dust Elemental"
+    },
+    {
+      "id": "m-bandit",
+      "name": "Bandit"
+    },
+    {
+      "id": "m-evil-warrior",
+      "name": "Evil Warrior"
+    },
+    {
+      "id": "m-necromancer",
+      "name": "Necromancer"
+    },
+    {
+      "id": "m-tunnel-wight",
+      "name": "Tunnel Wight"
+    },
+    {
+      "id": "m-barrow-wight",
+      "name": "Barrow Wight"
+    },
+    {
+      "id": "m-castle-wight",
+      "name": "Castle Wight"
+    },
+    {
+      "id": "m-pale-wraith",
+      "name": "Pale Wraith"
+    },
+    {
+      "id": "m-dark-wraith",
+      "name": "Dark Wraith"
+    },
+    {
+      "id": "m-abyss-wraith",
+      "name": "Abyss Wraith"
+    },
+    {
+      "id": "m-animated-bronze-statue",
+      "name": "Animated Bronze Statue"
+    },
+    {
+      "id": "m-animated-iron-statue",
+      "name": "Animated Iron Statue"
+    },
+    {
+      "id": "m-animated-marble-statue",
+      "name": "Animated Marble Statue"
+    },
+    {
+      "id": "m-animated-wooden-statue",
+      "name": "Animated Wooden Statue"
+    },
+    {
+      "id": "m-rat-man",
+      "name": "Rat-Man"
+    },
+    {
+      "id": "m-wolf-man",
+      "name": "Wolf-Man"
+    },
+    {
+      "id": "m-bear-man",
+      "name": "Bear-Man"
+    },
+    {
+      "id": "m-bull-man",
+      "name": "Bull-Man"
+    },
+    {
+      "id": "m-berserker",
+      "name": "Berserker"
+    },
+    {
+      "id": "m-shadow",
+      "name": "Shadow"
+    },
+    {
+      "id": "m-surtur",
+      "name": "Surtur"
+    },
+    {
+      "id": "m-the-demon-lord-surtur",
+      "name": "The Demon Lord Surtur"
+    },
+    {
+      "id": "m-utgardhalok",
+      "name": "Utgardhalok"
+    },
+    {
+      "id": "m-utgardhalok-the-hill-giant-king",
+      "name": "Utgardhalok, The Hill Giant King"
+    },
+    {
+      "id": "m-rungnir",
+      "name": "Rungnir"
+    },
+    {
+      "id": "m-rungnir-the-stone-giant-king",
+      "name": "Rungnir, The Stone Giant King"
+    },
+    {
+      "id": "m-thrym",
+      "name": "Thrym"
+    },
+    {
+      "id": "m-thrym-the-frost-giant-king",
+      "name": "Thrym, The Frost Giant King"
+    },
+    {
+      "id": "m-thiassa",
+      "name": "Thiassa"
+    },
+    {
+      "id": "m-thiassa-the-fire-giant-king",
+      "name": "Thiassa, The Fire Giant King"
+    },
+    {
+      "id": "m-spiked-devil",
+      "name": "Spiked Devil"
+    },
+    {
+      "id": "m-horned-devil",
+      "name": "Horned Devil"
+    },
+    {
+      "id": "m-ice-devil",
+      "name": "Ice Devil"
+    },
+    {
+      "id": "m-abyss-fiend",
+      "name": "Abyss Fiend"
+    },
+    {
+      "id": "m-air-elemental",
+      "name": "Air Elemental"
+    },
+    {
+      "id": "m-earth-elemental",
+      "name": "Earth Elemental"
+    },
+    {
+      "id": "m-fire-elemental",
+      "name": "Fire Elemental"
+    },
+    {
+      "id": "m-water-elemental",
+      "name": "Water Elemental"
+    },
+    {
+      "id": "m-two-headed-giant",
+      "name": "Two Headed Giant"
+    }
+  ],
+  "gaps": [
+    {
+      "field": "hp",
+      "reason": "no static stat table exists in the EXE (EXTRACTION-GAPS.md #1)"
+    },
+    {
+      "field": "ac",
+      "reason": "no static stat table exists in the EXE (EXTRACTION-GAPS.md #1)"
+    },
+    {
+      "field": "damage",
+      "reason": "no static stat table exists in the EXE (EXTRACTION-GAPS.md #1)"
+    },
+    {
+      "field": "speed",
+      "reason": "no static stat table exists in the EXE (EXTRACTION-GAPS.md #1)"
+    },
+    {
+      "field": "xp",
+      "reason": "no static stat table exists in the EXE (EXTRACTION-GAPS.md #1)"
+    }
+  ],
+  "expectedCount": 99
+}

@@ -1,0 +1,1330 @@
+/* Castle of the Winds — responsive shell.
+   Mobile-first: 100dvh three-row grid (HUD / map / sheet), safe-area aware,
+   48px touch controls. Destination travel is the only movement input. */
+
+/* Text scale preference (UI plan Phase 7): rem-based text follows this
+   variable; fixed pixel control sizes stay put so chrome geometry is stable. */
+html {
+  font-size: calc(100% * var(--text-scale, 1));
+}
+
+/* Settings panel (UI plan Phase 7) */
+.option-row { display: block; margin: 0 0 var(--gap-3); }
+.option-row small { color: var(--ink-dim); }
+.segmented { display: flex; flex-wrap: wrap; gap: var(--gap-1); margin-top: var(--gap-1); }
+.segmented button {
+  min-height: 44px; min-width: 64px; padding: 0 12px;
+  background: var(--raised); color: var(--ink);
+  border: 1px solid var(--border); border-radius: var(--radius);
+}
+.segmented button.active { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+.options-footer { display: flex; justify-content: flex-end; margin-top: var(--gap-4); }
+.options-footer button {
+  min-height: 44px; padding: 0 16px;
+  background: var(--raised); color: var(--ink);
+  border: 1px solid var(--border); border-radius: var(--radius);
+}
+
+/* Design tokens (UI plan §7) — shared visual values, defined once. */
+:root {
+  /* Surfaces */
+  --bg: #11151b; /* dark neutral surrounding the map */
+  --panel: #1d242d; /* opaque reading surface */
+  --raised: #2a3440; /* buttons, chips, controls */
+  /* Text */
+  --ink: #f1e8d6; /* primary text */
+  --ink-dim: #bbc4ce; /* secondary text — never fainter for critical info */
+  /* Signal */
+  --accent: #d8b56d; /* selection + primary actions */
+  --danger: #ef7b78; /* destructive — always paired with text */
+  --mana: #84b7f2; /* mana pools — always labeled with a value */
+  /* Rhythm */
+  --gap-1: 4px;
+  --gap-2: 8px;
+  --gap-3: 12px;
+  --gap-4: 16px;
+  --gap-6: 24px;
+  --radius: 8px;
+  --control: 48px; /* primary touch target */
+  --border: #313b47; /* hairline between surfaces */
+  --hud-height: auto;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  /* Prevent pinch-zoom double-tap jitter during gameplay. */
+  overscroll-behavior: none;
+  /* The shell is a full-viewport grid; the document itself must never scroll.
+     Without this, focus-driven scrollIntoView (e.g. the creation wizard's
+     Begin button) can scroll the page behind a modal, desynchronizing
+     touch input from layout coordinates on mobile. */
+  overflow: hidden;
+}
+
+#app {
+  height: 100vh;
+  height: 100dvh;
+}
+
+.cotw-shell {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  height: 100vh;
+  height: 100dvh;
+  width: 100%;
+  /* Safe-area insets for notches/home bars in both orientations. */
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom)
+    env(safe-area-inset-left);
+}
+
+/* HUD header */
+.hud {
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  padding: 0.4rem 0.6rem;
+}
+
+.hud-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.9rem;
+  align-items: baseline;
+  justify-content: center;
+  /* Health, mana, gold, prices: stable digit columns (UI plan §7). */
+  font-variant-numeric: tabular-nums;
+}
+
+/* Hero status entry: one button into the Character sheet (UI plan §4). */
+.hud-hero {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0.3rem 0.55rem;
+  color: var(--ink);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  text-align: left;
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.hud-hero:active {
+  background: var(--raised);
+}
+
+.hud-hero [data-field='name'] {
+  font-weight: 700;
+  color: var(--accent);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hud-hero [data-field='level'] {
+  color: var(--ink-dim);
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.hud-hero [data-field='hp'].low {
+  color: var(--danger);
+  font-weight: 700;
+}
+
+.hud-bar-hp,
+.hud-bar-mana {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.hud-bar-mana {
+  margin-left: 0.4rem;
+}
+
+.bar {
+  width: clamp(56px, 20vw, 110px);
+  height: 5px;
+  border-radius: 3px;
+  background: var(--border);
+  overflow: hidden;
+}
+
+.bar > .fill {
+  display: block;
+  height: 100%;
+  background: var(--danger);
+}
+
+.bar.mana > .fill {
+  background: var(--mana);
+}
+
+.hud-right {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  flex: 0 0 auto;
+}
+
+/* Location chip doubles as the Map entry (UI plan §4). */
+.hud-location {
+  max-width: 40vw;
+  padding: 0.45rem 0.7rem;
+  font-size: 0.85rem;
+  color: var(--ink-dim);
+  background: var(--raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  touch-action: manipulation;
+}
+
+.hud-pause {
+  width: var(--control);
+  height: var(--control);
+  font-size: 1rem;
+  color: var(--ink);
+  background: var(--raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  touch-action: manipulation;
+}
+
+/* Map viewport: canvas fills its region; input layer owns touch-action. */
+.map {
+  position: relative;
+  overflow: hidden;
+  background: var(--bg);
+  touch-action: none;
+}
+
+.map canvas {
+  display: block;
+  image-rendering: pixelated;
+}
+
+/* View controls overlay (zoom/center) — view-only, never movement (UI plan Phase 4). */
+.map-controls {
+  position: absolute;
+  top: var(--gap-2);
+  right: var(--gap-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-1);
+  z-index: 5;
+}
+
+.map-controls button {
+  width: 48px;
+  height: 48px;
+  min-width: 48px;
+  min-height: 48px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--panel);
+  color: var(--ink);
+  font-size: 1.25rem;
+  line-height: 1;
+  touch-action: manipulation;
+  user-select: none;
+}
+
+.map-controls button:active {
+  background: var(--raised);
+}
+
+/* Bottom sheet: one recent-event line + the four-entry dock (UI plan §4). */
+.sheet {
+  background: var(--panel);
+  border-top: 1px solid var(--border);
+  padding: 0.4rem;
+}
+
+.sheet-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.recent-event {
+  min-height: 1.6rem;
+  padding: 0.3rem 0.6rem;
+  font-size: 0.9rem;
+  line-height: 1.3;
+  color: var(--ink-dim);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.log-full {
+  max-height: min(60dvh, 28rem);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.9rem;
+  line-height: 1.35;
+}
+
+.log-full .log-entry {
+  overflow-wrap: anywhere;
+}
+
+/* Repeat count badge (UI plan Phase 7): "×3" after grouped messages. */
+.log-full .log-count {
+  display: inline-block;
+  margin-left: 0.4rem;
+  padding: 0 0.35rem;
+  border-radius: var(--radius, 6px);
+  background: var(--raised);
+  color: var(--ink-dim);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+/* Urgent announcements for assistive tech: visually hidden live region. */
+.sr-only-announce {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+/* Modern Help landing tabs (UI plan Phase 7). */
+.help-tabs {
+  display: flex;
+  gap: 0.4rem;
+  margin-bottom: 0.6rem;
+}
+
+.help-tabs button {
+  flex: 1;
+  min-height: 44px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius, 8px);
+  background: var(--panel);
+  color: var(--ink-dim);
+  font: inherit;
+}
+
+.help-tabs button.active {
+  background: var(--raised);
+  color: var(--ink);
+  border-color: var(--accent);
+}
+
+.help-panel {
+  display: none;
+}
+
+.help-panel.active {
+  display: block;
+}
+
+.help-panel h4 {
+  margin: 0.8rem 0 0.3rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.78rem;
+  color: var(--ink-dim);
+}
+
+.help-group-label {
+  margin: 0.5rem 0 0.15rem;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.help-panel ul {
+  margin: 0.2rem 0 0.4rem;
+  padding-left: 1.1rem;
+}
+
+.help-panel li {
+  margin: 0.15rem 0;
+  font-size: 0.92rem;
+}
+
+.help-faq-q {
+  margin: 0.6rem 0 0.1rem;
+  font-weight: 600;
+}
+
+.help-faq-a {
+  margin: 0 0 0.25rem;
+  color: var(--ink-dim);
+}
+
+.help-read-more {
+  display: block;
+  margin: 0.1rem 0 0.5rem;
+  min-height: 44px;
+  padding: 0.25rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius, 8px);
+  background: var(--panel);
+  color: var(--accent);
+  font: inherit;
+}
+
+/* Fixed-order dock: Bag, Spells, Wait, Actions (Wait never moves). */
+.dock {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.4rem;
+}
+
+.dock button {
+  min-height: var(--control);
+  min-width: 44px;
+  font-size: 1rem;
+  color: var(--ink);
+  background: var(--raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  /* Removes the 300ms tap delay without disabling scrolling elsewhere. */
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.dock button:active {
+  background: var(--border);
+}
+
+/* Favorite-spell quick slots (UI plan Phase 6): stable positions, shown
+   beside the dock when width allows; on narrow phones favorites stay
+   inside the Spellbook (plan: "when height is scarce, place favorites
+   inside Spells or Bag"). */
+.quickbar {
+  display: none;
+  gap: 0.4rem;
+}
+
+.quickbar button {
+  min-height: var(--control);
+  min-width: 44px;
+  padding: 0 0.6rem;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--ink);
+  background: var(--raised);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.quickbar button:disabled {
+  opacity: 0.55;
+  border-color: var(--border);
+}
+
+@media (min-width: 560px) {
+  .quickbar {
+    display: flex;
+  }
+}
+
+/* Landscape phone: single column stays, sheet becomes a shallow bottom dock
+   (recent-event line + dock in one row) so the map keeps maximum height
+   (UI plan Phase 3: no fixed side rail). */
+@media (orientation: landscape) and (max-height: 500px) {
+  .hud-bar {
+    flex-wrap: nowrap;
+    gap: 0.4rem;
+  }
+  .hud-hero {
+    flex: 0 1 auto;
+    min-width: 0;
+  }
+  .hud-right {
+    margin-left: auto;
+  }
+  .hud-pause {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+  }
+  .hud-location {
+    max-width: 30vw;
+  }
+  .sheet {
+    padding: 0.25rem 0.4rem;
+  }
+  .sheet-inner {
+    flex-direction: row;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  .recent-event {
+    flex: 1;
+    min-width: 0;
+    min-height: 1.2rem;
+    padding: 0.15rem 0.6rem;
+    white-space: nowrap;
+  }
+  .dock {
+    flex: 0 0 auto;
+  }
+  .dock button {
+    min-width: 64px;
+    min-height: 44px;
+  }
+}
+
+/* Large screens: the game fills the window — the camera scales tiles, so a
+   wider map simply shows more of the level (UI plan Phase 3: no width cap). */
+
+/* ─── Modal dialogs ────────────────────────────────────────────────────── */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(8, 4, 18, 0.72);
+  z-index: 40;
+}
+
+.dialog {
+  display: flex;
+  flex-direction: column;
+  width: min(92vw, 34rem);
+  max-height: min(86dvh, 44rem);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  /* Dialogs scroll normally (plan: touch-action auto inside .dialog). */
+  touch-action: auto;
+}
+
+.dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.55rem 0.8rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.dialog-title {
+  margin: 0;
+  font-size: 1.1rem;
+  color: var(--accent);
+}
+
+.dialog-close {
+  min-width: 44px;
+  min-height: 44px;
+  font-size: 1.3rem;
+  line-height: 1;
+  color: var(--ink);
+  background: var(--raised);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  touch-action: manipulation;
+}
+
+.dialog-body {
+  overflow-y: auto;
+  padding: 0.6rem 0.8rem;
+}
+
+/* Character sheet rows */
+.char-section {
+  margin-bottom: 0.8rem;
+}
+
+.char-section h3 {
+  margin: 0.2rem 0 0.3rem;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-dim);
+}
+
+.char-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.15rem 0;
+  border-bottom: 1px dotted var(--border);
+  font-size: 0.95rem;
+}
+
+.char-label {
+  color: var(--ink-dim);
+}
+
+.char-value {
+  font-weight: 600;
+  text-align: right;
+}
+
+/* ─── Spellbook + target picker ────────────────────────────────────────── */
+
+.spell-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0;
+  border-bottom: 1px dotted var(--border);
+}
+
+.spell-row button {
+  min-height: 44px;
+  min-width: 64px;
+}
+
+.spell-row button:disabled {
+  opacity: 0.45;
+}
+
+.spell-reason {
+  color: var(--danger);
+  font-size: 0.85rem;
+}
+
+.inv-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.2rem;
+  margin-bottom: 0.6rem;
+  color: var(--ink-dim);
+}
+
+.inv-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0;
+  border-bottom: 1px dotted var(--border);
+}
+
+.inv-row .char-label {
+  min-width: 5.5rem;
+}
+
+.inv-row .char-value {
+  flex: 1;
+  text-align: left;
+}
+
+.inv-row button,
+.spell-row button {
+  font-size: 0.9rem;
+  color: var(--ink);
+  background: var(--raised);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  touch-action: manipulation;
+}
+
+.target-bar {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 0.6rem);
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  max-width: min(94vw, 34rem);
+  padding: 0.5rem 0.6rem;
+  background: var(--panel);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+}
+
+.target-bar [data-field='target-spell'] {
+  color: var(--accent);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.target-bar [data-field='target-notice'] {
+  color: var(--ink-dim);
+  font-style: italic;
+  font-size: 0.9rem;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.target-bar button {
+  min-height: 48px;
+  min-width: 48px;
+  padding: 0 0.9rem;
+  border-radius: var(--radius);
+  touch-action: manipulation;
+}
+
+.target-bar [data-action='cast-target'] {
+  background: var(--accent);
+  color: var(--bg);
+  font-weight: 600;
+}
+
+.target-bar [data-action='cast-target']:disabled {
+  opacity: 0.45;
+}
+
+.target-bar [data-action='cancel-target'] {
+  background: var(--raised);
+  color: var(--ink);
+}
+
+/* ─── Title screen ──────────────────────────────────────────────────────── */
+.title-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  background:
+    radial-gradient(ellipse at 50% 20%, #232c38 0%, #11151b 60%, #0b0e13 100%);
+  text-align: center;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right)
+    env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
+.title-overlay h1 {
+  margin: 0;
+  font-size: clamp(1.6rem, 6vw, 3rem);
+  color: var(--accent);
+  letter-spacing: 0.04em;
+}
+
+.title-overlay p {
+  margin: 0;
+  color: var(--ink);
+  opacity: 0.85;
+}
+
+.title-buttons {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+
+/* ─── Map canvas sizing + menu rows ─────────────────────────────────────── */
+.map canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.menu-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.minimap {
+  display: block;
+  max-width: 100%;
+  image-rendering: pixelated;
+  margin: 0 auto;
+}
+
+/* ─── Story cutscenes + victory (Task 5.6) ─────────────────────────────── */
+.story-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.2rem;
+  padding: max(1.5rem, env(safe-area-inset-top)) 1.5rem max(1.5rem, env(safe-area-inset-bottom));
+  background: radial-gradient(ellipse at center, #1d242d 0%, #0b0e13 75%);
+  color: var(--ink);
+  overflow-y: auto;
+}
+
+.story-title {
+  margin: 0;
+  font-size: clamp(1.3rem, 4vw, 2rem);
+  color: var(--accent);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.story-text {
+  max-width: 34rem;
+  white-space: pre-wrap;
+  line-height: 1.55;
+  font-size: clamp(0.95rem, 2.6vw, 1.05rem);
+}
+
+.story-count {
+  font-size: 0.8rem;
+  opacity: 0.6;
+}
+
+.story-continue,
+.story-buttons button {
+  min-height: 48px;
+  min-width: 140px;
+  padding: 0 1.5rem;
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  background: var(--raised);
+  color: var(--ink);
+  font-size: 1rem;
+}
+
+/* Death recap: the last few log lines above the buttons (UI plan Phase 7). */
+.death-events {
+  margin-top: 8px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--panel);
+  max-height: 24dvh;
+  overflow-y: auto;
+  text-align: left;
+}
+
+.death-events h4 {
+  margin: 0 0 6px;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-dim);
+}
+
+.death-events [data-field='death-event'] {
+  margin: 2px 0;
+  font-size: 0.9rem;
+  color: var(--ink-dim);
+}
+
+.story-buttons {
+  display: flex;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.victory-stats {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  min-width: 16rem;
+}
+
+.victory-stats li {
+  display: flex;
+  justify-content: space-between;
+  gap: 2rem;
+  padding: 0.25rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.journal-entry {
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--border);
+  line-height: 1.4;
+}
+
+/* Save slots (Task 6.1) */
+
+.save-dialog {
+  min-width: min(84vw, 26rem);
+}
+
+.slot-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0;
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+
+.slot-row .slot-label {
+  flex: 1 1 12rem;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.slot-row input[type='text'] {
+  flex: 1 1 8rem;
+  min-width: 0;
+  padding: 0.35rem 0.5rem;
+  border-radius: 0.4rem;
+  border: 1px solid var(--border);
+  background: #11151b;
+  color: var(--ink, #e8e2f2);
+}
+
+.save-footer {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+  align-items: center;
+}
+
+.save-footer input[type='file'] {
+  display: none;
+}
+
+.import-error {
+  margin: 0.4rem 0 0;
+  color: var(--danger, #e05656);
+  min-height: 1.2em;
+}
+
+/* Destructive confirmation buttons (A18) */
+.slot-row .danger {
+  background: var(--danger, #e05656);
+  color: #fff;
+  font-weight: 600;
+}
+
+/* ---- Save editor ---- */
+
+.editor-tabs {
+  display: flex;
+  gap: 0.35rem;
+  margin-bottom: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.editor-tab {
+  flex: 1 1 auto;
+  min-height: 44px;
+}
+
+.editor-tab.active {
+  background: var(--accent, #c9a86a);
+  color: #11151b;
+  font-weight: 700;
+}
+
+.editor-panel {
+  display: none;
+}
+
+.editor-panel.active {
+  display: block;
+}
+
+.editor-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.45rem;
+}
+
+.editor-row label {
+  flex: 0 0 7.5rem;
+}
+
+.editor-row input,
+.editor-row select {
+  flex: 1;
+  min-height: 44px;
+  padding: 0 0.4rem;
+}
+
+.editor-note {
+  font-size: 0.85rem;
+  opacity: 0.75;
+  margin: 0.3rem 0 0.6rem;
+}
+
+.editor-error {
+  color: var(--danger, #e05656);
+  min-height: 1.2em;
+  margin: 0.4rem 0 0;
+}
+
+/* Inline per-field explanations + pending-change note (UI plan Phase 7). */
+.field-error {
+  display: block;
+  color: var(--danger, #e05656);
+  font-size: 0.8rem;
+  margin-top: 0.2rem;
+}
+
+.pending-note {
+  color: var(--accent, #d8b56d);
+  min-height: 1.2em;
+  margin: 0.4rem 0 0;
+}
+
+.editor-footer .danger {
+  background: var(--danger, #e05656);
+  border-color: var(--danger, #e05656);
+  color: #fff;
+  font-weight: 600;
+}
+
+.inv-row.removed span:first-child {
+  text-decoration: line-through;
+  opacity: 0.55;
+}
+
+.item-catalog {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0.4rem 0;
+}
+
+.item-catalog .catalog-item {
+  min-height: 44px;
+}
+
+.pending-adds .inv-row,
+.pack-list .inv-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+}
+
+.pending-adds .inv-row input,
+.pack-list .inv-row input {
+  width: 4.5rem;
+  min-height: 44px;
+  padding: 0 0.3rem;
+}
+
+.editor-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.7rem;
+  align-items: center;
+}
+
+.editor-footer .editor-error {
+  flex: 1;
+  margin: 0;
+}
+
+/* Pause screen (UI plan §4): dimmed world behind a narrow command list. */
+.pause-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.pause-recap {
+  margin: 0 0 0.4rem;
+  color: var(--ink-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.pause-unsaved {
+  margin: 0 0 0.4rem;
+  color: var(--danger);
+  font-size: 0.85rem;
+}
+
+.pause-list button {
+  min-height: var(--control);
+  font-size: 1rem;
+  color: var(--ink);
+  background: var(--raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  touch-action: manipulation;
+}
+
+.pause-list button:active {
+  background: var(--border);
+}
+
+/* ── Inventory panel (UI plan Phase 5) ─────────────────────────────── */
+.inventory-panel { display: flex; flex-direction: column; gap: var(--gap-8); }
+.inv-toolbar { display: flex; flex-wrap: wrap; gap: var(--gap-8); align-items: center; }
+.inv-tabs, .inv-filters, .inv-sorts { display: flex; gap: var(--gap-4); }
+.inv-toolbar button {
+  min-height: 40px; min-width: 44px; padding: 0 12px;
+  background: var(--panel); color: var(--ink-dim);
+  border: 1px solid var(--border); border-radius: var(--radius);
+  font-size: 0.85rem;
+}
+.inv-toolbar button.active { color: var(--ink); border-color: var(--accent); background: var(--raised); }
+.inv-split { display: flex; flex-direction: column; gap: var(--gap-8); }
+@media (min-width: 560px) { .inv-split { flex-direction: row; } .inv-list-col { flex: 1 1 55%; } .inv-details-col { flex: 1 1 45%; } }
+.inv-list-col { display: flex; flex-direction: column; gap: var(--gap-4); min-height: 140px; max-height: min(48dvh, 420px); overflow-y: auto; }
+.item-row { border-bottom: 1px solid var(--border); }
+.item-row-button {
+  display: flex; width: 100%; align-items: center; gap: var(--gap-8);
+  min-height: 48px; padding: 4px 8px; background: none; border: none;
+  border-left: 3px solid transparent; color: var(--ink); text-align: left; font-size: 0.95rem;
+}
+.item-row.selected .item-row-button { border-left-color: var(--accent); background: var(--panel); }
+.item-icon { display: inline-block; width: 18px; height: 18px; border-radius: 4px; flex: none; }
+.item-name { flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.item-count { color: var(--ink-dim); font-variant-numeric: tabular-nums; }
+.item-badge { color: var(--accent); font-size: 0.75rem; border: 1px solid var(--accent); border-radius: 4px; padding: 0 4px; flex: none; }
+.equip-row { display: flex; gap: var(--gap-8); align-items: center; min-height: 44px; border-bottom: 1px solid var(--border); padding: 0 4px; }
+.equip-row.selected { border-left: 3px solid var(--accent); background: var(--panel); }
+.slot-label { flex: 0 0 7.5rem; color: var(--ink-dim); }
+.slot-value { flex: 1 1 auto; }
+.equip-row button { min-height: 40px; }
+.inv-details-col { border-top: 1px solid var(--border); padding-top: var(--gap-8); }
+@media (min-width: 560px) { .inv-details-col { border-top: none; border-left: 1px solid var(--border); padding: 0 0 0 var(--gap-12); } }
+.item-details-name { margin: 0 0 2px; color: var(--accent); }
+.item-kind, .item-details p { margin: 2px 0; color: var(--ink-dim); font-size: 0.9rem; }
+.item-compare { margin-top: var(--gap-4); display: flex; flex-direction: column; gap: 2px; }
+.compare-row { display: flex; justify-content: space-between; gap: var(--gap-8); font-size: 0.85rem; }
+.compare-row .compare-values { font-variant-numeric: tabular-nums; color: var(--ink); }
+.primary-action {
+  margin-top: var(--gap-8); width: 100%; min-height: 48px;
+  background: var(--accent); color: #14100a; font-weight: 600;
+  border: none; border-radius: var(--radius);
+}
+.drop-area { margin-top: var(--gap-8); padding-top: var(--gap-8); border-top: 1px dashed var(--border); display: flex; align-items: center; gap: var(--gap-8); }
+.drop-area p { flex: 1 1 auto; margin: 0; color: var(--ink-dim); font-size: 0.78rem; }
+.drop-area button { min-height: 44px; background: var(--panel); border: 1px solid var(--border); color: var(--ink-dim); border-radius: var(--radius); }
+.inv-footer { display: flex; justify-content: space-between; align-items: center; gap: var(--gap-8); border-top: 1px solid var(--border); padding-top: var(--gap-8); }
+.inv-footer-info { display: flex; gap: var(--gap-12); flex-wrap: wrap; color: var(--ink-dim); font-size: 0.85rem; font-variant-numeric: tabular-nums; }
+.inv-footer button { min-height: 44px; background: var(--panel); border: 1px solid var(--border); color: var(--ink); border-radius: var(--radius); }
+.inv-announce { color: var(--accent); font-size: 0.85rem; margin: var(--gap-4) 0 0; }
+.inv-hint { color: var(--ink-dim); font-size: 0.9rem; }
+
+/* ── Merchant panel (UI plan Phase 5) ─────────────────────────────── */
+.merchant-panel { display: flex; flex-direction: column; gap: var(--gap-8); }
+.merchant-notice { color: var(--danger); min-height: 1.2em; margin: 0; font-size: 0.9rem; }
+.merchant-list { display: flex; flex-direction: column; gap: var(--gap-4); max-height: min(44dvh, 400px); overflow-y: auto; }
+.merchant-list h4 { margin: var(--gap-4) 0 0; color: var(--ink-dim); }
+.merchant-price { color: var(--accent); font-variant-numeric: tabular-nums; flex: none; }
+.inv-row .merchant-price { margin-left: auto; }
+.unaffordable { opacity: 0.55; }
+
+/* ── New-game wizard: presets + guidance (UI plan Phase 7) ───────────── */
+.newgame-dialog h4 { margin: var(--gap-8) 0 var(--gap-4); color: var(--ink-dim); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; }
+.preset-row { display: flex; flex-wrap: wrap; gap: var(--gap-8); align-items: center; }
+.preset-row h4 { flex-basis: 100%; }
+.preset-row button { min-height: var(--control); min-width: 88px; padding: 0 var(--gap-12); background: var(--panel); color: var(--ink); border: 1px solid var(--border); border-radius: var(--radius); }
+.preset-row button.active { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+.stat-help { margin: 2px 0 var(--gap-8); color: var(--ink-dim); font-size: 0.82rem; }
+.diff-help { display: block; color: var(--ink-dim); font-size: 0.82rem; margin: 2px 0 var(--gap-8); }
+.stat-grid .stat-row input[type='number'] { min-height: var(--control); }
+
+/* ── Onboarding hint toast (UI plan Phase 7) ─────────────────────────── */
+.hint-toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(var(--gap-16) + env(safe-area-inset-bottom, 0px)); z-index: 45; width: min(92vw, 26rem); background: var(--panel); color: var(--ink); border: 1px solid var(--accent); border-radius: var(--radius); padding: var(--gap-12); box-shadow: 0 6px 24px rgba(0,0,0,0.45); }
+.hint-toast [data-field="hint-title"] { color: var(--accent); display: block; margin-bottom: var(--gap-4); }
+.hint-toast [data-field="hint-body"] { margin: 0 0 var(--gap-8); color: var(--ink); }
+.hint-actions { display: flex; gap: var(--gap-8); }
+.hint-actions button { min-height: var(--control); flex: 1; border-radius: var(--radius); border: 1px solid var(--border); background: var(--raised); color: var(--ink); }
+.hint-actions [data-action="hint-next"] { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+.help-replay { margin-top: var(--gap-12); min-height: var(--control); width: 100%; border-radius: var(--radius); border: 1px solid var(--border); background: var(--panel); color: var(--ink-dim); }
+
+/* Creation wizard primary action: always-visible 48px target (UI plan Phase 8 —
+   Begin sat below the fold at 21px tall on phones). Sticky inside the dialog
+   body so it stays pinned at the bottom edge regardless of scroll. */
+.begin-btn {
+  position: sticky;
+  bottom: 0;
+  display: block;
+  width: 100%;
+  min-height: var(--control);
+  padding: 0 var(--gap-12);
+  margin-top: var(--gap-12);
+  background: var(--panel);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  color: var(--accent);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.begin-btn:disabled {
+  opacity: 0.5;
+}
+
+/* Shared controls and spacing for the DOM interface. */
+:root {
+  --gap-8: 8px;
+  --gap-12: 12px;
+  --gap-16: 16px;
+}
+button, input, select, textarea { font: inherit; }
+button {
+  min-height: 44px;
+  padding: 0.55rem 0.9rem;
+  color: var(--ink);
+  background: var(--raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+button:hover:not(:disabled) { border-color: var(--accent); background-color: #35404b; }
+button:disabled { cursor: default; opacity: 0.48; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+input:not([type='radio']):not([type='checkbox']), select, textarea {
+  min-height: 44px;
+  min-width: 0;
+  max-width: 100%;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid #505967;
+  border-radius: 6px;
+  color: var(--ink);
+  background: #131a22;
+}
+input[type='radio'], input[type='checkbox'] { accent-color: var(--accent); width: 18px; height: 18px; flex: none; }
+.cotw-shell { grid-template-rows: auto minmax(0, 1fr) auto; }
+.map { min-width: 0; min-height: 0; }
+.hud-bar { align-items: center; }
+.hud-hero { min-height: 44px; }
+.title-overlay { padding: 24px; }
+.title-overlay h1, .story-title { font-family: Georgia, 'Times New Roman', serif; font-weight: 400; }
+.title-overlay h1 { font-size: clamp(2rem, 6vw, 4rem); }
+.title-buttons { max-width: 40rem; gap: 12px; }
+.title-buttons button { min-width: 120px; }
+.title-buttons [data-action='new-game'] { background: var(--accent); color: #191c20; }
+.title-parts { display: flex; flex-direction: column; gap: 0.4rem; max-width: 40rem; }
+.title-part { border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--panel); color: var(--ink-dim); min-height: 44px; }
+.title-part.active { border-color: var(--accent); color: var(--accent); }
+.modal-overlay { padding: 16px; backdrop-filter: blur(5px); }
+.dialog { width: min(100%, 38rem); max-height: calc(100dvh - 32px); overflow: hidden; box-shadow: 0 24px 80px #0009; }
+.dialog-header { flex: none; padding: 12px 20px; }
+.dialog-close { padding: 0; }
+.dialog-body { min-height: 0; padding: 20px; scrollbar-width: thin; scrollbar-color: #58616b transparent; }
+.dialog-newgame { width: min(100%, 44rem); }
+.newgame-dialog { display: grid; gap: 16px; }
+.newgame-dialog > label { display: grid; gap: 8px; font-weight: 600; }
+.newgame-dialog h4 { margin: 0; font-size: 0.75rem; letter-spacing: 0.1em; }
+.newgame-dialog > p { margin: 0; color: var(--ink-dim); font-size: 0.9rem; }
+.newgame-dialog > p:empty { display: none; }
+.newgame-dialog fieldset { margin: 0; padding: 12px; min-width: 0; border: 1px solid var(--border); border-radius: 8px; }
+.newgame-dialog legend { padding: 0 6px; font-size: 0.8rem; color: var(--ink-dim); }
+.newgame-dialog fieldset:first-of-type { display: flex; gap: 24px; }
+.newgame-dialog fieldset label { display: flex; align-items: center; gap: 8px; min-height: 44px; text-transform: capitalize; }
+.preset-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.preset-row h4 { grid-column: 1 / -1; margin-bottom: 4px; }
+.preset-row button { min-width: 0; background: #171e26; }
+.preset-row button.active { background: #373326; box-shadow: inset 0 0 0 1px var(--accent); }
+.stat-grid { padding: 4px 16px; border: 1px solid var(--border); border-radius: 8px; background: #171e26; }
+.stat-grid .stat-row { display: grid; grid-template-columns: minmax(0, 1fr) 44px 64px 44px; align-items: center; gap: 8px; padding-top: 12px; }
+.stat-row > span { grid-column: 1; grid-row: 1; font-size: 0.9rem; }
+.stat-row [data-step='down'] { grid-column: 2; grid-row: 1; }
+.stat-row input { width: 100%; text-align: center; font-variant-numeric: tabular-nums; appearance: textfield; }
+.stat-row input::-webkit-inner-spin-button { appearance: none; }
+.stat-row button { padding: 0; font-size: 1.15rem; }
+.stat-help { margin: 4px 0 0; padding-bottom: 12px; border-bottom: 1px solid var(--border); line-height: 1.5; }
+.stat-help:last-child { border: 0; }
+.newgame-dialog fieldset:last-of-type { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.newgame-dialog fieldset:last-of-type label { display: grid; grid-template-columns: 20px 1fr; gap: 4px 8px; align-content: start; padding: 12px; background: #171e26; border: 1px solid var(--border); border-radius: 6px; }
+.newgame-dialog fieldset:last-of-type label:has(:checked) { border-color: var(--accent); background: #302e26; }
+.diff-help { grid-column: 2; margin: 0; text-transform: none; line-height: 1.5; }
+.begin-btn { position: static; margin: 0; background: var(--accent); color: #161b21; }
+.begin-btn:disabled { opacity: 1; color: #9ba0a7; background: #2a3038; border-color: #424954; }
+.story-overlay { display: grid; grid-template-rows: auto minmax(0, 1fr) auto auto; justify-items: center; gap: 16px; overflow: hidden; padding: clamp(16px, 4vh, 40px) 24px; }
+.story-title { text-align: center; text-transform: none; letter-spacing: 0.04em; }
+.story-text { width: min(100%, 42rem); max-width: 42rem; min-height: 0; height: 100%; overflow-y: auto; margin: 0; padding: 20px clamp(12px, 3vw, 32px); border-block: 1px solid #d8b56d40; font-family: Georgia, 'Times New Roman', serif; font-size: clamp(1rem, 2vw, 1.15rem); line-height: 1.75; white-space: pre-line; scrollbar-width: thin; scrollbar-color: #58616b transparent; }
+.story-count { opacity: 1; color: var(--ink-dim); }
+.story-continue { background: var(--accent); color: #161b21; }
+.story-buttons { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.victory-stats { margin: 0; padding: 0; list-style: none; width: min(100%, 30rem); }
+.victory-stats li { display: flex; justify-content: space-between; gap: 16px; padding: 4px; }
+@media (max-width: 520px) {
+  .modal-overlay { padding: 8px; }
+  .dialog { max-height: calc(100dvh - 16px); }
+  .dialog-header, .dialog-body { padding: 12px; }
+  .newgame-dialog fieldset:last-of-type { grid-template-columns: 1fr; }
+  .stat-grid { padding-inline: 8px; }
+  .stat-grid .stat-row { gap: 4px; grid-template-columns: minmax(0, 1fr) 44px 52px 44px; }
+  .story-overlay { padding: 16px 12px; gap: 10px; }
+}
+@media (min-width: 760px) {
+  .dialog-newgame { width: min(100%, 54rem); }
+  .newgame-dialog {
+    grid-template-columns: 1.15fr 1fr;
+    grid-template-areas: 'name gender' 'preset preset' 'heading heading' 'pool pool' 'stats difficulty' 'error error' 'begin begin';
+    gap: 12px 20px;
+  }
+  .newgame-dialog > label { grid-area: name; align-content: center; }
+  .newgame-dialog > fieldset:first-of-type { grid-area: gender; }
+  .newgame-dialog > .preset-row { grid-area: preset; }
+  .newgame-dialog > h4 { grid-area: heading; margin-top: 8px; }
+  .newgame-dialog > p { grid-area: pool; }
+  .newgame-dialog > .stat-grid { grid-area: stats; }
+  .newgame-dialog > fieldset:last-of-type { grid-area: difficulty; grid-template-columns: 1fr; }
+  .newgame-dialog > [data-field='error'] { grid-area: error; }
+  .newgame-dialog > .begin-btn { grid-area: begin; }
+}
+@media (min-width: 760px) and (min-height: 700px) {
+  .dialog-newgame .dialog-body { padding: 16px 20px; }
+  .newgame-dialog { gap: 8px 20px; }
+  .stat-grid .stat-row { padding-top: 8px; }
+  .stat-help { padding-bottom: 8px; }
+}
+.inv-tabs, .inv-filters, .inv-sorts { flex-wrap: wrap; }
+.inv-list-col, .inv-details-col { min-width: 0; }
+
+/* Debug tools share the editor and remain usable on narrow screens. */
+.debug-toggle { display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 12px; background: var(--raised); border-radius: var(--radius); }
+.debug-menu > button { text-align: left; }
+.editor-row > span:first-child { flex: 0 0 8rem; color: var(--ink-dim); }
+.editor-row > input, .editor-row > select { min-width: 0; width: 100%; }
+.editor-row > input[type='checkbox'] { flex: none; width: 18px; min-height: 18px; }
+.editor-row:has(> input[type='checkbox']) > span:first-child { flex: 1; }
+@media (max-width: 520px) {
+  .editor-row { flex-wrap: wrap; }
+  .editor-row > span:first-child { flex-basis: 100%; }
+  .editor-row:has(> input[type='checkbox']) { flex-wrap: nowrap; }
+  .editor-row:has(> input[type='checkbox']) > span:first-child { flex-basis: auto; }
+}

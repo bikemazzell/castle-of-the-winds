@@ -1,0 +1,394 @@
+{
+  "version": 1,
+  "source": {
+    "exe": "CASTLE1.EXE",
+    "sha256": "e90d202717882449196cc087bc2231d2c94a17a553c4b5dfa4c91ed4c718c3b0",
+    "tableOffset": 134960,
+    "decoderVersion": "manual-spells/1"
+  },
+  "records": [
+    {
+      "id": "s510",
+      "name": "MAGIC ARROW",
+      "tier": 1,
+      "manaCost": 1,
+      "target": "enemy"
+    },
+    {
+      "id": "s522",
+      "name": "COLD BOLT",
+      "tier": 2,
+      "manaCost": 2,
+      "target": "enemy"
+    },
+    {
+      "id": "s523",
+      "name": "LIGHTNING BOLT",
+      "tier": 3,
+      "manaCost": 3,
+      "target": "enemy"
+    },
+    {
+      "id": "s524",
+      "name": "FIRE BOLT",
+      "tier": 3,
+      "manaCost": 3,
+      "target": "enemy"
+    },
+    {
+      "id": "s525",
+      "name": "COLD BALL",
+      "tier": 3,
+      "manaCost": 4,
+      "target": "enemy"
+    },
+    {
+      "id": "s526",
+      "name": "BALL LIGHTNING",
+      "tier": 4,
+      "manaCost": 4,
+      "target": "enemy"
+    },
+    {
+      "id": "s527",
+      "name": "FIREBALL",
+      "tier": 4,
+      "manaCost": 5,
+      "target": "enemy"
+    },
+    {
+      "id": "s817",
+      "name": "SLEEP MONSTER",
+      "tier": 3,
+      "manaCost": 4,
+      "target": "enemy"
+    },
+    {
+      "id": "s818",
+      "name": "SLOW MONSTER",
+      "tier": 3,
+      "manaCost": 4,
+      "target": "enemy"
+    },
+    {
+      "id": "s822",
+      "name": "TRANSMOGRIFY MONSTER",
+      "tier": 5,
+      "manaCost": 6,
+      "target": "enemy"
+    },
+    {
+      "id": "s323",
+      "name": "SHIELD",
+      "tier": 1,
+      "manaCost": 1,
+      "target": "self"
+    },
+    {
+      "id": "s647",
+      "name": "RESIST COLD",
+      "tier": 3,
+      "manaCost": 3,
+      "target": "self"
+    },
+    {
+      "id": "s648",
+      "name": "RESIST LIGHTNING",
+      "tier": 3,
+      "manaCost": 3,
+      "target": "self"
+    },
+    {
+      "id": "s646",
+      "name": "RESIST FIRE",
+      "tier": 3,
+      "manaCost": 3,
+      "target": "self"
+    },
+    {
+      "id": "s512",
+      "name": "HEAL MINOR WOUNDS",
+      "tier": 1,
+      "manaCost": 1,
+      "target": "self"
+    },
+    {
+      "id": "s651",
+      "name": "HEAL MEDIUM WOUNDS",
+      "tier": 3,
+      "manaCost": 3,
+      "target": "self"
+    },
+    {
+      "id": "s736",
+      "name": "HEAL MAJOR WOUNDS",
+      "tier": 4,
+      "manaCost": 5,
+      "target": "self"
+    },
+    {
+      "id": "s676",
+      "name": "NEUTRALIZE POISON",
+      "tier": 2,
+      "manaCost": 3,
+      "target": "self"
+    },
+    {
+      "id": "s423",
+      "name": "HEALING",
+      "tier": 5,
+      "manaCost": 6,
+      "target": "self"
+    },
+    {
+      "id": "s513",
+      "name": "PHASE DOOR",
+      "tier": 1,
+      "manaCost": 1
+    },
+    {
+      "id": "s388",
+      "name": "LEVITATION",
+      "tier": 2,
+      "manaCost": 2
+    },
+    {
+      "id": "s694",
+      "name": "RUNE OF RETURN",
+      "tier": 3,
+      "manaCost": 3
+    },
+    {
+      "id": "s678",
+      "name": "TELEPORT",
+      "tier": 3,
+      "manaCost": 3
+    },
+    {
+      "id": "s514",
+      "name": "DETECT OBJECTS",
+      "tier": 1,
+      "manaCost": 1
+    },
+    {
+      "id": "s530",
+      "name": "DETECT MONSTERS",
+      "tier": 2,
+      "manaCost": 2
+    },
+    {
+      "id": "s511",
+      "name": "DETECT TRAPS",
+      "tier": 2,
+      "manaCost": 2
+    },
+    {
+      "id": "s587",
+      "name": "IDENTIFY",
+      "tier": 2,
+      "manaCost": 2
+    },
+    {
+      "id": "s888",
+      "name": "CLAIRVOYANCE",
+      "tier": 2,
+      "manaCost": 3
+    },
+    {
+      "id": "s816",
+      "name": "CREATE TRAPS"
+    },
+    {
+      "id": "s819",
+      "name": "HASTE MONSTER"
+    },
+    {
+      "id": "s821",
+      "name": "CLONE MONSTER"
+    },
+    {
+      "id": "s820",
+      "name": "TELEPORT AWAY"
+    },
+    {
+      "id": "s675",
+      "name": "LIGHT",
+      "tier": 1,
+      "manaCost": 1
+    },
+    {
+      "id": "s652",
+      "name": "REMOVE CURSE",
+      "tier": 3,
+      "manaCost": 3
+    }
+  ],
+  "gaps": [
+    {
+      "field": "effect",
+      "reason": "effect formulas are runtime code, not static data (EXTRACTION-GAPS.md #1)"
+    },
+    {
+      "field": "target",
+      "reason": "targeting for movement spells needs engine semantics",
+      "records": [
+        "s513"
+      ]
+    },
+    {
+      "field": "target",
+      "reason": "targeting for movement spells needs engine semantics",
+      "records": [
+        "s388"
+      ]
+    },
+    {
+      "field": "target",
+      "reason": "targeting for movement spells needs engine semantics",
+      "records": [
+        "s694"
+      ]
+    },
+    {
+      "field": "target",
+      "reason": "targeting for movement spells needs engine semantics",
+      "records": [
+        "s678"
+      ]
+    },
+    {
+      "field": "target",
+      "reason": "targeting for divination spells needs engine semantics",
+      "records": [
+        "s514"
+      ]
+    },
+    {
+      "field": "target",
+      "reason": "targeting for divination spells needs engine semantics",
+      "records": [
+        "s530"
+      ]
+    },
+    {
+      "field": "target",
+      "reason": "targeting for divination spells needs engine semantics",
+      "records": [
+        "s511"
+      ]
+    },
+    {
+      "field": "target",
+      "reason": "targeting for divination spells needs engine semantics",
+      "records": [
+        "s587"
+      ]
+    },
+    {
+      "field": "target",
+      "reason": "targeting for divination spells needs engine semantics",
+      "records": [
+        "s888"
+      ]
+    },
+    {
+      "field": "target",
+      "reason": "targeting for non-character spells needs engine semantics",
+      "records": [
+        "s816"
+      ]
+    },
+    {
+      "field": "tier",
+      "reason": "non-character spell: Spell Level NA in manual",
+      "records": [
+        "s816"
+      ]
+    },
+    {
+      "field": "manaCost",
+      "reason": "non-character spell: Base Mana NA in manual",
+      "records": [
+        "s816"
+      ]
+    },
+    {
+      "field": "target",
+      "reason": "targeting for non-character spells needs engine semantics",
+      "records": [
+        "s819"
+      ]
+    },
+    {
+      "field": "tier",
+      "reason": "non-character spell: Spell Level NA in manual",
+      "records": [
+        "s819"
+      ]
+    },
+    {
+      "field": "manaCost",
+      "reason": "non-character spell: Base Mana NA in manual",
+      "records": [
+        "s819"
+      ]
+    },
+    {
+      "field": "target",
+      "reason": "targeting for non-character spells needs engine semantics",
+      "records": [
+        "s821"
+      ]
+    },
+    {
+      "field": "tier",
+      "reason": "non-character spell: Spell Level NA in manual",
+      "records": [
+        "s821"
+      ]
+    },
+    {
+      "field": "manaCost",
+      "reason": "non-character spell: Base Mana NA in manual",
+      "records": [
+        "s821"
+      ]
+    },
+    {
+      "field": "target",
+      "reason": "targeting for non-character spells needs engine semantics",
+      "records": [
+        "s820"
+      ]
+    },
+    {
+      "field": "tier",
+      "reason": "non-character spell: Spell Level NA in manual",
+      "records": [
+        "s820"
+      ]
+    },
+    {
+      "field": "manaCost",
+      "reason": "non-character spell: Base Mana NA in manual",
+      "records": [
+        "s820"
+      ]
+    },
+    {
+      "field": "target",
+      "reason": "targeting for miscellaneous spells needs engine semantics",
+      "records": [
+        "s675"
+      ]
+    },
+    {
+      "field": "target",
+      "reason": "targeting for miscellaneous spells needs engine semantics",
+      "records": [
+        "s652"
+      ]
+    }
+  ],
+  "expectedCount": 34
+}

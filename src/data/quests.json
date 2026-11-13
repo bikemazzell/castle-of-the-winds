@@ -1,0 +1,139 @@
+{
+  "version": 1,
+  "source": {
+    "note": "Curated from CASTLE1.EXE story resources (RT 0x104, ids 1-15, see story.json) and the CASTLE1.HLP manual. Original trigger specifics (exact cutscene map positions, boss guard count) were not recoverable from the binary; see gaps.",
+    "exe": "CASTLE1.EXE",
+    "sha256": "e90d202717882449196cc087bc2231d2c94a17a553c4b5dfa4c91ed4c718c3b0"
+  },
+  "quests": [
+    {
+      "id": "vengeance",
+      "title": "A Question of Vengeance",
+      "boss": {
+        "level": 11,
+        "monster": "Hrungnir, The Hill Giant Lord",
+        "guards": [
+          {
+            "name": "Huge Ogre",
+            "count": 2
+          }
+        ]
+      },
+      "bossRosterExclusions": [
+        "Hrungnir",
+        "Hrungnir, The Hill Giant Lord"
+      ],
+      "victoryStoryText": 15,
+      "stages": [
+        {
+          "id": "intro",
+          "trigger": {
+            "kind": "game-start"
+          },
+          "journalText": "Avenge your godparents. The marauders who burned the farm took your father's amulet north, towards the mountains.",
+          "storyTexts": [
+            1
+          ]
+        },
+        {
+          "id": "mine-bottom",
+          "trigger": {
+            "kind": "level-reached",
+            "level": 8
+          },
+          "journalText": "At the bottom of the mine you found a scorched parchment signed with a flaming 'S'. It speaks of a fortress north of Bjarnarhaven.",
+          "storyTexts": [
+            2
+          ]
+        },
+        {
+          "id": "homecoming",
+          "trigger": {
+            "kind": "town-entered",
+            "requires": "mine-bottom"
+          },
+          "journalText": "The hamlet lies in ashes. Whoever ordered this sees YOU as the danger. Bjarnarhaven \u2014 and the fortress beyond \u2014 await.",
+          "storyTexts": [
+            3,
+            4
+          ]
+        },
+        {
+          "id": "fortress",
+          "trigger": {
+            "kind": "level-reached",
+            "level": 9
+          },
+          "journalText": "The fortress north of Bjarnarhaven crawls with Hrungnir's patrols. A crude note names him \u2014 and the castle he answers to.",
+          "storyTexts": [
+            5
+          ]
+        },
+        {
+          "id": "chests",
+          "trigger": {
+            "kind": "level-reached",
+            "level": 10
+          },
+          "journalText": "Loot from the bandits' chests came from your farm and village. You are on the right track.",
+          "storyTexts": [
+            6
+          ]
+        },
+        {
+          "id": "confrontation",
+          "trigger": {
+            "kind": "level-reached",
+            "level": 11
+          },
+          "journalText": "Hrungnir himself awaits on the deepest level of the fortress, with his ogre guards. End this.",
+          "storyTexts": [
+            7,
+            8
+          ]
+        },
+        {
+          "id": "magic-ward",
+          "optional": true,
+          "trigger": {
+            "kind": "spell-cast-at",
+            "name": "Hrungnir, The Hill Giant Lord"
+          },
+          "journalText": "Hrungnir wards your spells aside and gloats. Steel will have to finish this.",
+          "storyTexts": [
+            9
+          ]
+        },
+        {
+          "id": "victory",
+          "trigger": {
+            "kind": "monster-killed",
+            "name": "Hrungnir, The Hill Giant Lord"
+          },
+          "journalText": "Vengeance is yours. Hrungnir is dead \u2014 and the amulet he stole now hangs around your neck, warm with your father's voice.",
+          "storyTexts": [
+            10,
+            11,
+            12,
+            13,
+            14
+          ]
+        }
+      ]
+    }
+  ],
+  "gaps": [
+    {
+      "field": "cutscene-trigger-positions",
+      "reason": "Original cutscenes fire at fixed map positions/states (e.g. the homecoming scene on the trail between mine and hamlet). The port triggers them on level arrivals instead; the single-town approximation has no separate hamlet/Bjarnarhaven maps."
+    },
+    {
+      "field": "boss-guard-count",
+      "reason": "Story text id8 says 'a squad of armored ogres'; exact count unknown from the binary. Ported as 2 Huge Ogres."
+    },
+    {
+      "field": "amulet-item",
+      "reason": "The recovered amulet (story ids 11-14) is not in the extracted item catalog; the port grants it as a story flag, not an inventory object."
+    }
+  ]
+}

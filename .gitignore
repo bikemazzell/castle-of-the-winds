@@ -1,0 +1,11 @@
+node_modules/
+dist/
+coverage/
+docs/
+plans/
+reviews/
+assets/
+original*/
+.env*
+*.local
+.DS_Store

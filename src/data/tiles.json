@@ -1,0 +1,93 @@
+{
+  "version": 1,
+  "source": {
+    "exe": "CASTLE1.EXE",
+    "sha256": "e90d202717882449196cc087bc2231d2c94a17a553c4b5dfa4c91ed4c718c3b0",
+    "decoderVersion": "tiles-curated/1"
+  },
+  "flags": {
+    "room": 32,
+    "corridor": 12,
+    "door": 64
+  },
+  "tiles": [
+    {
+      "id": 0,
+      "name": "wall",
+      "sprite": "bm120",
+      "walkable": false,
+      "transparent": false,
+      "source": "original"
+    },
+    {
+      "id": 1,
+      "name": "floor",
+      "sprite": "bm124",
+      "walkable": true,
+      "transparent": true,
+      "source": "original"
+    },
+    {
+      "id": 18,
+      "name": "stairsDown",
+      "sprite": "bm221",
+      "walkable": true,
+      "transparent": true,
+      "source": "original"
+    },
+    {
+      "id": 19,
+      "name": "stairsUp",
+      "sprite": "bm220",
+      "walkable": true,
+      "transparent": true,
+      "source": "original"
+    },
+    {
+      "id": 128,
+      "name": "grass",
+      "sprite": "bm6",
+      "walkable": true,
+      "transparent": true,
+      "source": "extension"
+    },
+    {
+      "id": 129,
+      "name": "road",
+      "sprite": "bm2",
+      "walkable": true,
+      "transparent": true,
+      "source": "extension"
+    },
+    {
+      "id": 130,
+      "name": "water",
+      "sprite": "bm182",
+      "walkable": false,
+      "transparent": true,
+      "source": "extension"
+    },
+    {
+      "id": 131,
+      "name": "hedge",
+      "sprite": "bm5",
+      "walkable": false,
+      "transparent": false,
+      "source": "extension"
+    },
+    {
+      "id": 133,
+      "name": "door",
+      "sprite": "bm213",
+      "walkable": true,
+      "transparent": true,
+      "source": "extension"
+    }
+  ],
+  "gaps": [
+    {
+      "field": "tiles",
+      "reason": "tile art re-audited 2026-11-12 (96px crop + vision verification): road = gravelly path bm2, hedge = leafy dither bm5 (bm120-123 are wall autotile variants; bm1 is a checkerboard interior floor). Other terrain art (ice bm4, stone floors bm181/bm212, dirt bm125, gate bm211, brazier bm214, counter bm217) verified visually but not yet mapped to engine tiles"
+    }
+  ]
+}

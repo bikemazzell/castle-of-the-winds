@@ -1,0 +1,91 @@
+/* Content-first panels. The form scrolls while its primary actions stay visible. */
+.dialog-newgame .dialog-body { display: flex; overflow: hidden; }
+.newgame-dialog { display: flex; flex: 1; flex-direction: column; min-width: 0; min-height: 0; gap: 0; }
+.newgame-fields { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; overflow-y: auto; min-height: 0; padding: 0 4px 16px 0; }
+.newgame-fields > label { display: grid; gap: 8px; font-weight: 600; }
+.newgame-footer { flex: none; padding-top: 12px; border-top: 1px solid var(--border); background: var(--panel); }
+.newgame-footer [data-field='error'] { margin: 0 0 8px; color: var(--ink-dim); line-height: 1.4; }
+.newgame-footer [data-field='error']:empty { display: none; }
+.newgame-dialog .begin-btn { position: static; margin: 0; }
+.custom-attributes { min-width: 0; }
+.custom-attributes summary { cursor: pointer; padding: 12px; border: 1px solid var(--border); border-radius: var(--radius); color: var(--accent); }
+.custom-attributes[open] summary { margin-bottom: 12px; }
+.custom-attributes > p { color: var(--ink-dim); }
+.newgame-dialog fieldset { flex-wrap: wrap; }
+.newgame-dialog .preset-row button { overflow-wrap: anywhere; padding-inline: 8px; }
+.newgame-dialog .stat-grid .stat-row { grid-template-columns: minmax(0, 1fr) 44px minmax(52px, 4rem) 44px; }
+@media (min-width: 760px) {
+  .newgame-fields { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .newgame-fields > .preset-row, .newgame-fields > fieldset:last-of-type, .custom-attributes { grid-column: 1 / -1; }
+  .newgame-dialog .newgame-fields fieldset:last-of-type { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 520px) {
+  .newgame-dialog .stat-grid .stat-row > span { grid-column: 1 / -1; grid-row: 1; }
+  .newgame-dialog .stat-grid .stat-row { grid-template-columns: 44px minmax(52px, 1fr) 44px; }
+  .newgame-dialog .stat-row [data-step='down'] { grid-column: 1; grid-row: 2; }
+  .newgame-dialog .stat-row input { grid-column: 2; grid-row: 2; }
+  .newgame-dialog .stat-row [data-step='up'] { grid-column: 3; grid-row: 2; }
+}
+
+/* Separate spell information from the actions at every text size. */
+.spellbook { display: grid; gap: 12px; }
+.spellbook .spell-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 12px; padding: 16px; border: 1px solid var(--border); border-radius: var(--radius); background: #171e26; }
+.spellbook .spell-info { display: grid; gap: 8px; min-width: 0; line-height: 1.5; }
+.spellbook .spell-title { text-align: left; overflow-wrap: anywhere; }
+.spellbook .spell-detail { display: block; color: var(--ink-dim); font-size: 0.9rem; }
+.spellbook .spell-reason { grid-column: 1 / -1; margin: 0; }
+.spellbook .spell-fav { padding-inline: 12px; }
+@media (max-width: 700px) {
+  .spellbook .spell-row { grid-template-columns: auto minmax(0, 1fr); padding: 12px; }
+  .spellbook .spell-info { grid-column: 1 / -1; }
+  .spellbook .spell-row [data-action='cast'] { justify-self: end; min-width: 5rem; }
+}
+
+.inventory-panel { display: grid; gap: 16px; }
+.inv-toolbar { gap: 12px; }
+.inv-toolbar > div { flex-wrap: wrap; gap: 6px; }
+.inv-toolbar > [hidden] { display: none; }
+.inv-details-col { padding: 12px; border: 1px solid var(--border); border-radius: var(--radius); background: #171e26; }
+.inv-details-col:has(.inv-hint) { background: transparent; }
+.inv-details-col [data-field='details-host']:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+.inv-details-col .primary-action { width: 100%; margin-block: 12px; }
+.inv-details-col .drop-area { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.inv-details-col .drop-area p { flex-basis: 100%; }
+.inv-footer { flex-wrap: wrap; }
+.inv-footer-info { flex: 1 1 14rem; }
+@media (max-width: 700px) {
+  .inv-split { flex-direction: column; gap: 12px; }
+  .inv-list-col, .inv-details-col { flex: none; width: 100%; }
+  .inv-list-col { max-height: 36dvh; }
+}
+
+/* Debug fields scroll independently of the tabs and Apply/Cancel. */
+.dialog:has(.editor-dialog) .dialog-body { display: flex; overflow: hidden; }
+.editor-dialog { display: flex; flex-direction: column; flex: 1; min-height: 0; min-width: 0; }
+.editor-tabs, .editor-footer, .editor-dialog > .pending-note, .editor-dialog > .editor-error { flex: none; }
+.editor-panel.active { overflow-y: auto; min-height: 0; padding-right: 4px; }
+.editor-footer { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); background: var(--panel); flex-wrap: wrap; }
+.editor-footer button { flex: 1; }
+.editor-dialog > .editor-error:empty, .editor-dialog > .pending-note:empty { display: none; }
+.editor-note { opacity: 1; color: var(--ink-dim); }
+.editor-dialog .pending-note { color: var(--accent); }
+.editor-row { min-width: 0; }
+.editor-row input, .editor-row select { max-width: 100%; }
+@media (max-height: 500px) {
+  .newgame-fields { gap: 10px; }
+  .editor-tabs { margin-bottom: 6px; }
+  .editor-footer { margin-top: 6px; padding-top: 6px; }
+}
+@media (max-width: 700px) {
+  .editor-tabs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .editor-tab { padding: 8px; min-width: 0; font-size: 0.85rem; overflow-wrap: anywhere; }
+}
+
+/* Ending content shares one scroll surface, including at 200% text size. */
+.story-overlay.victory { display: flex; flex-direction: column; justify-content: flex-start; overflow-y: auto; overflow-x: hidden; gap: 16px; }
+.victory > * { flex: none; min-width: 0; max-width: 100%; }
+.victory .story-text { height: auto; min-height: 0; max-height: none; overflow: visible; }
+.victory .victory-stats { min-width: 0; width: min(100%, 30rem); }
+.victory-stats li > span { min-width: 0; overflow-wrap: anywhere; }
+.victory .story-buttons { width: min(100%, 30rem); }
+.victory .story-buttons button { max-width: 100%; white-space: normal; }

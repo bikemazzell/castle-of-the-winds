@@ -1,0 +1,161 @@
+{
+  "version": 1,
+  "source": {
+    "exe": "CASTLE1.EXE",
+    "sha256": "e90d202717882449196cc087bc2231d2c94a17a553c4b5dfa4c91ed4c718c3b0",
+    "decoderVersion": "levels-curated/1",
+    "note": "descriptors are runtime-built (zeros in file); graph from shrine RE + manual; names APPROX"
+  },
+  "levels": [
+    {
+      "index": 0,
+      "name": "Crossroads",
+      "kind": "town",
+      "downStair": "generated",
+      "upStair": null,
+      "links": {
+        "down": null,
+        "up": null,
+        "special": {
+          "kind": "town-entrance",
+          "to": 1
+        }
+      }
+    },
+    {
+      "index": 1,
+      "name": "The Mine, Level 1",
+      "kind": "mine",
+      "downStair": "generated",
+      "upStair": null,
+      "links": {
+        "down": 2,
+        "up": null
+      }
+    },
+    {
+      "index": 2,
+      "name": "The Mine, Level 2",
+      "kind": "mine",
+      "downStair": "generated",
+      "upStair": null,
+      "links": {
+        "down": 3,
+        "up": null
+      }
+    },
+    {
+      "index": 3,
+      "name": "The Mine, Level 3",
+      "kind": "mine",
+      "downStair": "generated",
+      "upStair": null,
+      "links": {
+        "down": 4,
+        "up": null
+      }
+    },
+    {
+      "index": 4,
+      "name": "The Mine, Level 4",
+      "kind": "mine",
+      "downStair": "generated",
+      "upStair": "generated",
+      "links": {
+        "down": 5,
+        "up": 3
+      }
+    },
+    {
+      "index": 5,
+      "name": "The Mine, Level 5",
+      "kind": "mine",
+      "downStair": "generated",
+      "upStair": "generated",
+      "links": {
+        "down": 6,
+        "up": 4
+      }
+    },
+    {
+      "index": 6,
+      "name": "The Mine, Level 6",
+      "kind": "mine",
+      "downStair": "generated",
+      "upStair": "generated",
+      "links": {
+        "down": 7,
+        "up": 5
+      }
+    },
+    {
+      "index": 7,
+      "name": "The Mine, Level 7",
+      "kind": "mine",
+      "downStair": "generated",
+      "upStair": "generated",
+      "links": {
+        "down": 8,
+        "up": 6
+      }
+    },
+    {
+      "index": 8,
+      "name": "The Mine, Level 8",
+      "kind": "mine",
+      "downStair": "generated",
+      "upStair": "generated",
+      "links": {
+        "down": 9,
+        "up": 7
+      }
+    },
+    {
+      "index": 9,
+      "name": "The Fortress, Level 1",
+      "kind": "fortress",
+      "downStair": "generated",
+      "upStair": "generated",
+      "links": {
+        "down": 10,
+        "up": 8
+      }
+    },
+    {
+      "index": 10,
+      "name": "The Fortress, Level 2",
+      "kind": "fortress",
+      "downStair": "generated",
+      "upStair": "generated",
+      "links": {
+        "down": 11,
+        "up": 9
+      }
+    },
+    {
+      "index": 11,
+      "name": "The Fortress, Level 3",
+      "kind": "fortress",
+      "downStair": null,
+      "upStair": "generated",
+      "links": {
+        "down": null,
+        "up": 10
+      }
+    }
+  ],
+  "gaps": [
+    {
+      "field": "monsterDensity",
+      "reason": "per-level density is runtime state (EXTRACTION-GAPS.md #1)"
+    },
+    {
+      "field": "difficulty",
+      "reason": "per-level difficulty is runtime state (EXTRACTION-GAPS.md #1)"
+    },
+    {
+      "field": "links.special",
+      "reason": "branch levels 6/10 reportedly have extra stair links (shrine); exact targets unknown — single down link kept"
+    }
+  ]
+}

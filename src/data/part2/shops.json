@@ -1,0 +1,140 @@
+{
+  "version": 1,
+  "source": {
+    "exe": "CASTLE2.EXE",
+    "sha256": "a056ac0947c967a26e6c5ece67893b7f6562611ef08736f87ab1d96c2d05da2e",
+    "decoderVersion": "shops-curated/2",
+    "note": "C2 shopkeeper names from original strings; stock lists curated APPROX; prices are dynamic"
+  },
+  "shops": [
+    {
+      "id": "geirmund",
+      "name": "Geirmund the Sage",
+      "stringIndex": null,
+      "kind": "identify",
+      "stock": []
+    },
+    {
+      "id": "bank",
+      "name": "First Bank of Crossroads",
+      "stringIndex": null,
+      "kind": "bank",
+      "stock": []
+    },
+    {
+      "id": "eirik",
+      "name": "Eirik's House of Armor",
+      "stringIndex": null,
+      "kind": "armor",
+      "stock": [
+        "i-leather-armor",
+        "i-studded-leather-armor",
+        "i-ring-mail",
+        "i-scale-mail",
+        "i-chain-mail",
+        "i-splint-mail",
+        "i-plate-mail",
+        "i-plate-armor",
+        "i-leather-helmet",
+        "i-iron-helmet",
+        "i-steel-helmet",
+        "i-small-wooden-shield",
+        "i-medium-wooden-shield",
+        "i-small-iron-shield",
+        "i-large-wooden-shield",
+        "i-medium-iron-shield",
+        "i-small-steel-shield",
+        "i-large-iron-shield",
+        "i-medium-steel-shield",
+        "i-large-steel-shield"
+      ]
+    },
+    {
+      "id": "gunnar",
+      "name": "Gunnar's Weapon Shop",
+      "stringIndex": null,
+      "kind": "weapons",
+      "stock": [
+        "i-club",
+        "i-dagger",
+        "i-hammer",
+        "i-hand-axe",
+        "i-quarterstaff",
+        "i-spear",
+        "i-short-sword",
+        "i-mace",
+        "i-flail",
+        "i-axe",
+        "i-war-hammer",
+        "i-long-sword",
+        "i-battle-axe",
+        "i-broad-sword",
+        "i-morningstar",
+        "i-bastard-sword",
+        "i-two-handed-sword"
+      ]
+    },
+    {
+      "id": "astrid",
+      "name": "Astrid's General Store",
+      "stringIndex": null,
+      "kind": "general",
+      "stock": [
+        "i-potion",
+        "i-scroll-or-book",
+        "i-boots",
+        "i-cloak",
+        "i-gauntlets",
+        "i-bracers"
+      ]
+    },
+    {
+      "id": "magnus",
+      "name": "Magnus Olafsson's Magic Emporeum",
+      "stringIndex": null,
+      "kind": "magic",
+      "stock": [
+        "i-potion",
+        "i-scroll-or-book",
+        "i-staff",
+        "i-amulet",
+        "i-ring"
+      ]
+    },
+    {
+      "id": "ingrid",
+      "name": "Ingrid's Alchemy Shop",
+      "stringIndex": null,
+      "kind": "alchemy",
+      "stock": [
+        "i-potion",
+        "i-scroll-or-book"
+      ],
+      "notes": "alchemy: potion-focused stock (kind new in Part 2)"
+    },
+    {
+      "id": "church",
+      "name": "Church",
+      "stringIndex": null,
+      "kind": "temple",
+      "stock": []
+    },
+    {
+      "id": "olaf",
+      "name": "Olaf's Junk Store",
+      "stringIndex": null,
+      "kind": "junk",
+      "stock": []
+    }
+  ],
+  "gaps": [
+    {
+      "field": "stock",
+      "reason": "stock lists curated APPROX; original per-shop inventory is runtime state"
+    },
+    {
+      "field": "prices",
+      "reason": "prices are dynamic (haggling) — engine computes offers"
+    }
+  ]
+}

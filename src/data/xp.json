@@ -1,0 +1,52 @@
+{
+  "version": 1,
+  "source": {
+    "exe": "CASTLE1.EXE",
+    "sha256": "e90d202717882449196cc087bc2231d2c94a17a553c4b5dfa4c91ed4c718c3b0",
+    "decoderVersion": "xp-approx/1",
+    "note": "original XP table is runtime code; APPROX quadratic curve, difficulty-scaled later by engine"
+  },
+  "thresholds": [
+    0,
+    0,
+    1000,
+    3000,
+    6000,
+    10000,
+    15000,
+    21000,
+    28000,
+    36000,
+    45000,
+    55000,
+    66000,
+    78000,
+    91000,
+    105000,
+    120000,
+    136000,
+    153000,
+    171000,
+    190000,
+    210000,
+    231000,
+    253000,
+    276000
+  ],
+  "hpGainPerLevel": null,
+  "manaGainPerLevel": null,
+  "gaps": [
+    {
+      "field": "thresholds",
+      "reason": "APPROX curve — original values need seg19/22 disasm pass"
+    },
+    {
+      "field": "hpGainPerLevel",
+      "reason": "manual says levels add HP but not how much (runtime code)"
+    },
+    {
+      "field": "manaGainPerLevel",
+      "reason": "manual says levels add mana but not how much (runtime code)"
+    }
+  ]
+}

@@ -1,0 +1,407 @@
+{
+  "version": 1,
+  "source": {
+    "exe": "CASTLE2.HLP",
+    "sha256": "fddb3b2e9d3612902d8d2cf6b3c1e9e64a9091cfa4e459dfedb0c4389b4281a2",
+    "decoderVersion": "manual-objects/1"
+  },
+  "records": [
+    {
+      "id": "i-rusty-armor",
+      "name": "Rusty Armor",
+      "kind": "armor",
+      "weight": 10000,
+      "armorClass": 0
+    },
+    {
+      "id": "i-leather-armor",
+      "name": "Leather Armor",
+      "kind": "armor",
+      "weight": 5000,
+      "armorClass": 6
+    },
+    {
+      "id": "i-studded-leather-armor",
+      "name": "Studded Leather Armor",
+      "kind": "armor",
+      "weight": 7000,
+      "armorClass": 12
+    },
+    {
+      "id": "i-ring-mail",
+      "name": "Ring Mail",
+      "kind": "armor",
+      "weight": 8000,
+      "armorClass": 18
+    },
+    {
+      "id": "i-scale-mail",
+      "name": "Scale Mail",
+      "kind": "armor",
+      "weight": 9000,
+      "armorClass": 24
+    },
+    {
+      "id": "i-chain-mail",
+      "name": "Chain Mail",
+      "kind": "armor",
+      "weight": 10000,
+      "armorClass": 30
+    },
+    {
+      "id": "i-splint-mail",
+      "name": "Splint Mail",
+      "kind": "armor",
+      "weight": 12000,
+      "armorClass": 36
+    },
+    {
+      "id": "i-plate-mail",
+      "name": "Plate Mail",
+      "kind": "armor",
+      "weight": 15000,
+      "armorClass": 42
+    },
+    {
+      "id": "i-plate-armor",
+      "name": "Plate Armor",
+      "kind": "armor",
+      "weight": 15000,
+      "armorClass": 48
+    },
+    {
+      "id": "i-meteoric-steel-plate",
+      "name": "Meteoric Steel Plate",
+      "kind": "armor",
+      "weight": 5000,
+      "armorClass": 54
+    },
+    {
+      "id": "i-elven-mail",
+      "name": "Elven Mail",
+      "kind": "armor",
+      "weight": 5000,
+      "armorClass": 52
+    },
+    {
+      "id": "i-broken-helmet",
+      "name": "Broken Helmet",
+      "kind": "helmet",
+      "weight": 1000,
+      "armorClass": 0
+    },
+    {
+      "id": "i-leather-helmet",
+      "name": "Leather Helmet",
+      "kind": "helmet",
+      "weight": 500,
+      "armorClass": 3
+    },
+    {
+      "id": "i-iron-helmet",
+      "name": "Iron Helmet",
+      "kind": "helmet",
+      "weight": 2000,
+      "armorClass": 6
+    },
+    {
+      "id": "i-steel-helmet",
+      "name": "Steel Helmet",
+      "kind": "helmet",
+      "weight": 2500,
+      "armorClass": 9
+    },
+    {
+      "id": "i-meteoric-steel-helmet",
+      "name": "Meteoric Steel Helmet",
+      "kind": "helmet",
+      "weight": 1000,
+      "armorClass": 15
+    },
+    {
+      "id": "i-helmet-of-detect-monsters",
+      "name": "Helmet of Detect Monsters",
+      "kind": "helmet",
+      "weight": 2500,
+      "armorClass": 9
+    },
+    {
+      "id": "i-broken-shield",
+      "name": "Broken Shield",
+      "kind": "shield",
+      "weight": 4000,
+      "armorClass": 0
+    },
+    {
+      "id": "i-small-wooden-shield",
+      "name": "Small Wooden Shield",
+      "kind": "shield",
+      "weight": 3000,
+      "armorClass": 3
+    },
+    {
+      "id": "i-medium-wooden-shield",
+      "name": "Medium Wooden Shield",
+      "kind": "shield",
+      "weight": 4000,
+      "armorClass": 6
+    },
+    {
+      "id": "i-small-iron-shield",
+      "name": "Small Iron Shield",
+      "kind": "shield",
+      "weight": 4000,
+      "armorClass": 6
+    },
+    {
+      "id": "i-large-wooden-shield",
+      "name": "Large Wooden Shield",
+      "kind": "shield",
+      "weight": 5000,
+      "armorClass": 9
+    },
+    {
+      "id": "i-medium-iron-shield",
+      "name": "Medium Iron Shield",
+      "kind": "shield",
+      "weight": 5000,
+      "armorClass": 9
+    },
+    {
+      "id": "i-small-steel-shield",
+      "name": "Small Steel Shield",
+      "kind": "shield",
+      "weight": 4000,
+      "armorClass": 9
+    },
+    {
+      "id": "i-large-iron-shield",
+      "name": "Large Iron Shield",
+      "kind": "shield",
+      "weight": 6000,
+      "armorClass": 12
+    },
+    {
+      "id": "i-medium-steel-shield",
+      "name": "Medium Steel Shield",
+      "kind": "shield",
+      "weight": 5000,
+      "armorClass": 12
+    },
+    {
+      "id": "i-large-steel-shield",
+      "name": "Large Steel Shield",
+      "kind": "shield",
+      "weight": 6000,
+      "armorClass": 15
+    },
+    {
+      "id": "i-small-meteoric-steel-shield",
+      "name": "Small Meteoric Steel Shield",
+      "kind": "shield",
+      "weight": 2500,
+      "armorClass": 15
+    },
+    {
+      "id": "i-medium-meteoric-steel-shield",
+      "name": "Medium Meteoric Steel Shield",
+      "kind": "shield",
+      "weight": 3500,
+      "armorClass": 18
+    },
+    {
+      "id": "i-large-meteoric-steel-shield",
+      "name": "Large Meteoric Steel Shield",
+      "kind": "shield",
+      "weight": 4500,
+      "armorClass": 21
+    },
+    {
+      "id": "i-broken-sword",
+      "name": "Broken Sword",
+      "kind": "weapon",
+      "weight": 1000,
+      "weaponClass": 0
+    },
+    {
+      "id": "i-club",
+      "name": "Club",
+      "kind": "weapon",
+      "weight": 1500,
+      "weaponClass": 1
+    },
+    {
+      "id": "i-dagger",
+      "name": "Dagger",
+      "kind": "weapon",
+      "weight": 500,
+      "weaponClass": 2
+    },
+    {
+      "id": "i-hammer",
+      "name": "Hammer",
+      "kind": "weapon",
+      "weight": 2000,
+      "weaponClass": 2
+    },
+    {
+      "id": "i-hand-axe",
+      "name": "Hand Axe",
+      "kind": "weapon",
+      "weight": 1000,
+      "weaponClass": 3
+    },
+    {
+      "id": "i-quarterstaff",
+      "name": "Quarterstaff",
+      "kind": "weapon",
+      "weight": 750,
+      "weaponClass": 3
+    },
+    {
+      "id": "i-spear",
+      "name": "Spear",
+      "kind": "weapon",
+      "weight": 1500,
+      "weaponClass": 4
+    },
+    {
+      "id": "i-short-sword",
+      "name": "Short Sword",
+      "kind": "weapon",
+      "weight": 1000,
+      "weaponClass": 5
+    },
+    {
+      "id": "i-mace",
+      "name": "Mace",
+      "kind": "weapon",
+      "weight": 2500,
+      "weaponClass": 5
+    },
+    {
+      "id": "i-flail",
+      "name": "Flail",
+      "kind": "weapon",
+      "weight": 2000,
+      "weaponClass": 6
+    },
+    {
+      "id": "i-axe",
+      "name": "Axe",
+      "kind": "weapon",
+      "weight": 2000,
+      "weaponClass": 6
+    },
+    {
+      "id": "i-war-hammer",
+      "name": "War Hammer",
+      "kind": "weapon",
+      "weight": 1400,
+      "weaponClass": 7
+    },
+    {
+      "id": "i-long-sword",
+      "name": "Long Sword",
+      "kind": "weapon",
+      "weight": 1500,
+      "weaponClass": 8
+    },
+    {
+      "id": "i-battle-axe",
+      "name": "Battle Axe",
+      "kind": "weapon",
+      "weight": 3000,
+      "weaponClass": 8
+    },
+    {
+      "id": "i-broad-sword",
+      "name": "Broad Sword",
+      "kind": "weapon",
+      "weight": 1600,
+      "weaponClass": 9
+    },
+    {
+      "id": "i-morningstar",
+      "name": "Morningstar",
+      "kind": "weapon",
+      "weight": 3000,
+      "weaponClass": 10
+    },
+    {
+      "id": "i-bastard-sword",
+      "name": "Bastard Sword",
+      "kind": "weapon",
+      "weight": 3000,
+      "weaponClass": 11
+    },
+    {
+      "id": "i-two-handed-sword",
+      "name": "Two Handed Sword",
+      "kind": "weapon",
+      "weight": 5000,
+      "weaponClass": 12
+    },
+    {
+      "id": "i-potion",
+      "name": "Potion",
+      "kind": "misc",
+      "weight": 200
+    },
+    {
+      "id": "i-scroll-or-book",
+      "name": "Scroll or Book",
+      "kind": "misc",
+      "weight": 150
+    },
+    {
+      "id": "i-amulet",
+      "name": "Amulet",
+      "kind": "misc",
+      "weight": 200
+    },
+    {
+      "id": "i-staff",
+      "name": "Staff",
+      "kind": "misc",
+      "weight": 750
+    },
+    {
+      "id": "i-boots",
+      "name": "Boots",
+      "kind": "misc",
+      "weight": 1500
+    },
+    {
+      "id": "i-gauntlets",
+      "name": "Gauntlets",
+      "kind": "misc",
+      "weight": 500
+    },
+    {
+      "id": "i-bracers",
+      "name": "Bracers",
+      "kind": "misc",
+      "weight": 500
+    },
+    {
+      "id": "i-cloak",
+      "name": "Cloak",
+      "kind": "misc",
+      "weight": 500
+    },
+    {
+      "id": "i-ring",
+      "name": "Ring",
+      "kind": "misc",
+      "weight": 50
+    }
+  ],
+  "gaps": [
+    {
+      "field": "value",
+      "reason": "prices are dynamic in-game (haggling); no static price table exists"
+    }
+  ],
+  "expectedCount": 57
+}

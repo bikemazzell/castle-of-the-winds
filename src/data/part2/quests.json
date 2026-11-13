@@ -1,0 +1,223 @@
+{
+  "version": 1,
+  "source": {
+    "note": "Curated from CASTLE2.EXE story resources (RT 0x104, ids 1-26, see part2/story.json). Original trigger specifics (cutscene map positions, pack/boss levels, guard counts) were not recoverable from the binary; see gaps.",
+    "exe": "CASTLE2.EXE",
+    "sha256": "a056ac0947c967a26e6c5ece67893b7f6562611ef08736f87ab1d96c2d05da2e"
+  },
+  "quests": [
+    {
+      "id": "lifthransirs-bane",
+      "title": "Lifthransir's Bane",
+      "bosses": [
+        {
+          "level": 16,
+          "monster": "Utgardhalok, The Hill Giant King",
+          "guards": [{ "name": "Hill Giant", "count": 2 }]
+        },
+        {
+          "level": 18,
+          "monster": "Rungnir, The Stone Giant King",
+          "guards": [{ "name": "Stone Giant", "count": 2 }]
+        },
+        {
+          "level": 20,
+          "monster": "Thrym, The Frost Giant King",
+          "guards": [{ "name": "Frost Giant", "count": 2 }]
+        },
+        {
+          "level": 22,
+          "monster": "Thiassa, The Fire Giant King",
+          "guards": [{ "name": "Fire Giant", "count": 2 }]
+        },
+        {
+          "level": 25,
+          "monster": "The Demon Lord Surtur",
+          "guards": [{ "name": "Ice Devil", "count": 2 }]
+        }
+      ],
+      "bossRosterExclusions": [
+        "Surtur",
+        "The Demon Lord Surtur",
+        "Utgardhalok",
+        "Utgardhalok, The Hill Giant King",
+        "Rungnir",
+        "Rungnir, The Stone Giant King",
+        "Thrym",
+        "Thrym, The Frost Giant King",
+        "Thiassa",
+        "Thiassa, The Fire Giant King"
+      ],
+      "victoryStoryText": 26,
+      "stages": [
+        {
+          "id": "arrival",
+          "trigger": { "kind": "game-start" },
+          "journalText": "The amulet flares a second time \u2014 and this time it carries you across the sea to Crossroads, the town below the Castle of the Winds.",
+          "storyTexts": [1]
+        },
+        {
+          "id": "keep-first",
+          "trigger": { "kind": "game-start" },
+          "journalText": "The keep's guard hears your name \u2014 King Lifthransir's grandchild \u2014 and the shade of the king himself tells of the stolen Helm of Storms and the demon Surtur who wields it.",
+          "storyTexts": [2, 3, 4]
+        },
+        {
+          "id": "shade-warning",
+          "optional": true,
+          "trigger": { "kind": "town-entered", "requires": "keep-first" },
+          "journalText": "The shade's warning repeats in your mind: the Helm must be recovered, and Surtur with it banished.",
+          "storyTexts": [5]
+        },
+        {
+          "id": "wolf-pack",
+          "optional": true,
+          "trigger": { "kind": "level-reached", "level": 5 },
+          "journalText": "Wolf-men stalk these corridors. The townsfolk above spoke of a beast scourge \u2014 this is it.",
+          "storyTexts": [8]
+        },
+        {
+          "id": "bear-pack",
+          "optional": true,
+          "trigger": { "kind": "level-reached", "level": 9 },
+          "journalText": "Bear-men pad through the dark. The pack lords of the castle prowl below.",
+          "storyTexts": [9]
+        },
+        {
+          "id": "prisoner",
+          "trigger": { "kind": "level-reached", "level": 12 },
+          "journalText": "A freed farmer tells of goblin raids and weeks of captivity \u2014 the castle's depredations reach all the way to town.",
+          "storyTexts": [6]
+        },
+        {
+          "id": "prisoner-report",
+          "trigger": { "kind": "town-entered", "requires": "prisoner" },
+          "journalText": "You bring word of the rescue to town \u2014 and to the Jarl's keep.",
+          "storyTexts": [7]
+        },
+        {
+          "id": "jarl-depth",
+          "trigger": { "kind": "town-entered", "requires": "prisoner-report" },
+          "journalText": "The Jarl names the deep peril: the dungeon below the castle is twenty-five levels deep, and Surtur holds his throne room on the bottom level.",
+          "storyTexts": [10]
+        },
+        {
+          "id": "jarl-deep",
+          "optional": true,
+          "trigger": { "kind": "level-reached", "level": 14 },
+          "journalText": "The Jarl's briefing holds: below the fifteenth level the giant kings have their halls.",
+          "storyTexts": [13]
+        },
+        {
+          "id": "wizard",
+          "optional": true,
+          "trigger": { "kind": "level-reached", "level": 16 },
+          "journalText": "A wizard with tamed manticores bars the way \u2014 another of Surtur's servants.",
+          "storyTexts": [11]
+        },
+        {
+          "id": "utgardhalok-intro",
+          "optional": true,
+          "trigger": { "kind": "level-reached", "level": 16 },
+          "journalText": "Utgardhalok, the Hill Giant King, rises from his throne.",
+          "storyTexts": [14]
+        },
+        {
+          "id": "utgardhalok-slain",
+          "optional": true,
+          "trigger": { "kind": "monster-killed", "name": "Utgardhalok, The Hill Giant King" },
+          "journalText": "The Hill Giant King falls.",
+          "storyTexts": [15]
+        },
+        {
+          "id": "rungnir-intro",
+          "optional": true,
+          "trigger": { "kind": "level-reached", "level": 18 },
+          "journalText": "Rungnir, the Stone Giant King, blocks the stair.",
+          "storyTexts": [16]
+        },
+        {
+          "id": "rungnir-slain",
+          "optional": true,
+          "trigger": { "kind": "monster-killed", "name": "Rungnir, The Stone Giant King" },
+          "journalText": "The Stone Giant King crumbles.",
+          "storyTexts": [17]
+        },
+        {
+          "id": "undead",
+          "optional": true,
+          "trigger": { "kind": "level-reached", "level": 18 },
+          "journalText": "A chamber of the restless dead \u2014 the castle's crypts run deep.",
+          "storyTexts": [12]
+        },
+        {
+          "id": "thrym-intro",
+          "optional": true,
+          "trigger": { "kind": "level-reached", "level": 20 },
+          "journalText": "Thrym, the Frost Giant King, waits in the cold.",
+          "storyTexts": [18]
+        },
+        {
+          "id": "thrym-slain",
+          "optional": true,
+          "trigger": { "kind": "monster-killed", "name": "Thrym, The Frost Giant King" },
+          "journalText": "The Frost Giant King thaws no more.",
+          "storyTexts": [19]
+        },
+        {
+          "id": "thiassa-intro",
+          "optional": true,
+          "trigger": { "kind": "level-reached", "level": 22 },
+          "journalText": "Thiassa, the Fire Giant King, laughs at your approach.",
+          "storyTexts": [20]
+        },
+        {
+          "id": "thiassa-slain",
+          "optional": true,
+          "trigger": { "kind": "monster-killed", "name": "Thiassa, The Fire Giant King" },
+          "journalText": "The Fire Giant King is extinguished.",
+          "storyTexts": [21]
+        },
+        {
+          "id": "surtur-gate",
+          "trigger": { "kind": "level-reached", "level": 25 },
+          "journalText": "The Jarl's final words ring true: Surtur commands the fire, and only lightning harms him.",
+          "storyTexts": [22]
+        },
+        {
+          "id": "surtur-taunt",
+          "optional": true,
+          "trigger": { "kind": "spell-cast-at", "name": "The Demon Lord Surtur" },
+          "journalText": "Surtur shrugs aside your spells and taunts you \u2014 fire will not save him from the storm.",
+          "storyTexts": [23]
+        },
+        {
+          "id": "surtur-banished",
+          "trigger": { "kind": "monster-killed", "name": "The Demon Lord Surtur" },
+          "journalText": "A gate opens around Surtur's wavering form \u2014 his earthly shape dissolves, banished back to his fiery realm.",
+          "storyTexts": [24]
+        },
+        {
+          "id": "homecoming",
+          "trigger": { "kind": "town-entered", "requires": "surtur-banished" },
+          "journalText": "You return victorious. The Jarl himself kneels \u2014 and the shade of King Lifthransir rises to greet his champion, the Helm of Storms restored.",
+          "storyTexts": [25, 26]
+        }
+      ]
+    }
+  ],
+  "gaps": [
+    {
+      "field": "cutscene-trigger-positions",
+      "reason": "Original cutscenes fire at fixed map positions/states (keep visits, pack encounters, prisoner cell). The port triggers them on level arrivals, town returns, and boss interactions."
+    },
+    {
+      "field": "encounter-levels",
+      "reason": "Wolf/bear pack, wizard, undead, and Jarl briefing levels are APPROX (mapping table in docs/PART2-PLAN.md); the story texts do not state their exact depths."
+    },
+    {
+      "field": "boss-guard-count",
+      "reason": "King and Surtur guard counts (2 same-element giants / 2 Ice Devils) are APPROX; the binary does not expose the original encounter composition."
+    }
+  ]
+}

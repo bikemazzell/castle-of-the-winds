@@ -1,0 +1,132 @@
+{
+  "version": 1,
+  "source": {
+    "exe": "CASTLE1.EXE",
+    "sha256": "e90d202717882449196cc087bc2231d2c94a17a553c4b5dfa4c91ed4c718c3b0",
+    "decoderVersion": "shops-curated/1",
+    "note": "shop names are original strings; stock lists are curated APPROX from the items table; prices are dynamic"
+  },
+  "shops": [
+    {
+      "id": "snorri",
+      "name": "Snorri the Sage",
+      "stringIndex": 590,
+      "kind": "identify",
+      "stock": [],
+      "notes": "identify service (manual Stores topic): drag item in, price quoted"
+    },
+    {
+      "id": "olaf",
+      "name": "Olaf's Junk Store",
+      "stringIndex": 711,
+      "kind": "junk",
+      "stock": [],
+      "notes": "buys anything: market price if < 25 C.P. else 25 C.P. (manual Stores topic)"
+    },
+    {
+      "id": "bank",
+      "name": "First Bank of Crossroads (branch office)",
+      "stringIndex": 601,
+      "kind": "bank",
+      "stock": []
+    },
+    {
+      "id": "sverting",
+      "name": "Sverting's Armor Shop",
+      "stringIndex": 620,
+      "kind": "armor",
+      "stock": [
+        "i-leather-armor",
+        "i-studded-leather-armor",
+        "i-ring-mail",
+        "i-scale-mail",
+        "i-chain-mail",
+        "i-splint-mail",
+        "i-plate-mail",
+        "i-plate-armor",
+        "i-leather-helmet",
+        "i-iron-helmet",
+        "i-steel-helmet",
+        "i-small-wooden-shield",
+        "i-medium-wooden-shield",
+        "i-small-iron-shield",
+        "i-large-wooden-shield",
+        "i-medium-iron-shield",
+        "i-small-steel-shield",
+        "i-large-iron-shield",
+        "i-medium-steel-shield",
+        "i-large-steel-shield"
+      ]
+    },
+    {
+      "id": "bjorn",
+      "name": "Bjorn the Blacksmith",
+      "stringIndex": 627,
+      "kind": "weapons",
+      "stock": [
+        "i-club",
+        "i-dagger",
+        "i-hammer",
+        "i-hand-axe",
+        "i-quarterstaff",
+        "i-spear",
+        "i-short-sword",
+        "i-mace",
+        "i-flail",
+        "i-axe",
+        "i-war-hammer",
+        "i-long-sword",
+        "i-battle-axe",
+        "i-broad-sword",
+        "i-morningstar",
+        "i-bastard-sword",
+        "i-two-handed-sword"
+      ]
+    },
+    {
+      "id": "gunnhild",
+      "name": "Gunnhild's General Store",
+      "stringIndex": 628,
+      "kind": "general",
+      "stock": [
+        "i-potion",
+        "i-scroll-or-book",
+        "i-boots",
+        "i-cloak",
+        "i-gauntlets",
+        "i-bracers"
+      ]
+    },
+    {
+      "id": "myrkjartan",
+      "name": "Myrkjartan's Miscellaneous Magic Shop",
+      "stringIndex": 630,
+      "kind": "magic",
+      "stock": [
+        "i-potion",
+        "i-scroll-or-book",
+        "i-staff",
+        "i-amulet",
+        "i-ring"
+      ]
+    },
+    {
+      "id": "church",
+      "name": "Church",
+      "stringIndex": 654,
+      "kind": "temple",
+      "stock": [],
+      "notes": "Temple of Odin services (manual): heal, Remove Curse, restore drained stats, Rune of Return"
+    }
+  ],
+  "gaps": [
+    {
+      "field": "stock",
+      "reason": "stock lists curated APPROX; original per-shop inventory is runtime state"
+    },
+    {
+      "field": "prices",
+      "reason": "prices are dynamic (haggling) — engine computes offers"
+    }
+  ]
+}

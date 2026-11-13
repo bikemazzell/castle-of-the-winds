@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "source": {
+    "exe": "CASTLE2.EXE",
+    "sha256": "a056ac0947c967a26e6c5ece67893b7f6562611ef08736f87ab1d96c2d05da2e",
+    "md5": "00a949e0674d46f5f2872c92e5029347",
+    "hlp": "CASTLE2.HLP",
+    "hlpSha256": "fddb3b2e9d3612902d8d2cf6b3c1e9e64a9091cfa4e459dfedb0c4389b4281a2"
+  },
+  "icons": {
+    "candidates": 597,
+    "unique": 524,
+    "duplicates": 73,
+    "allSize32": true
+  },
+  "counts": {
+    "messages": 959,
+    "topics": 128,
+    "items": 57,
+    "monsters": 99,
+    "spells": 34,
+    "levels": 26
+  }
+}

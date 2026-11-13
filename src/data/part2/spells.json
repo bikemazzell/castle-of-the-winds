@@ -1,0 +1,393 @@
+{
+  "version": 1,
+  "source": {
+    "exe": "CASTLE2.HLP",
+    "sha256": "fddb3b2e9d3612902d8d2cf6b3c1e9e64a9091cfa4e459dfedb0c4389b4281a2",
+    "decoderVersion": "manual-spells/1"
+  },
+  "records": [
+    {
+      "id": "s-magic-arrow",
+      "name": "MAGIC ARROW",
+      "tier": 1,
+      "manaCost": 1,
+      "target": "enemy"
+    },
+    {
+      "id": "s-cold-bolt",
+      "name": "COLD BOLT",
+      "tier": 2,
+      "manaCost": 2,
+      "target": "enemy"
+    },
+    {
+      "id": "s-lightning-bolt",
+      "name": "LIGHTNING BOLT",
+      "tier": 3,
+      "manaCost": 3,
+      "target": "enemy"
+    },
+    {
+      "id": "s-fire-bolt",
+      "name": "FIRE BOLT",
+      "tier": 3,
+      "manaCost": 3,
+      "target": "enemy"
+    },
+    {
+      "id": "s-cold-ball",
+      "name": "COLD BALL",
+      "tier": 3,
+      "manaCost": 4,
+      "target": "enemy"
+    },
+    {
+      "id": "s-ball-lightning",
+      "name": "BALL LIGHTNING",
+      "tier": 4,
+      "manaCost": 4,
+      "target": "enemy"
+    },
+    {
+      "id": "s-fireball",
+      "name": "FIREBALL",
+      "tier": 4,
+      "manaCost": 5,
+      "target": "enemy"
+    },
+    {
+      "id": "s-sleep-monster",
+      "name": "SLEEP MONSTER",
+      "tier": 3,
+      "manaCost": 4,
+      "target": "enemy"
+    },
+    {
+      "id": "s-slow-monster",
+      "name": "SLOW MONSTER",
+      "tier": 3,
+      "manaCost": 4,
+      "target": "enemy"
+    },
+    {
+      "id": "s-transmogrify-monster",
+      "name": "TRANSMOGRIFY MONSTER",
+      "tier": 5,
+      "manaCost": 6,
+      "target": "enemy"
+    },
+    {
+      "id": "s-shield",
+      "name": "SHIELD",
+      "tier": 1,
+      "manaCost": 1,
+      "target": "self"
+    },
+    {
+      "id": "s-resist-cold",
+      "name": "RESIST COLD",
+      "tier": 3,
+      "manaCost": 3,
+      "target": "self"
+    },
+    {
+      "id": "s-resist-lightning",
+      "name": "RESIST LIGHTNING",
+      "tier": 3,
+      "manaCost": 3,
+      "target": "self"
+    },
+    {
+      "id": "s-resist-fire",
+      "name": "RESIST FIRE",
+      "tier": 3,
+      "manaCost": 3,
+      "target": "self"
+    },
+    {
+      "id": "s-heal-minor-wounds",
+      "name": "HEAL MINOR WOUNDS",
+      "tier": 1,
+      "manaCost": 1,
+      "target": "self"
+    },
+    {
+      "id": "s-heal-medium-wounds",
+      "name": "HEAL MEDIUM WOUNDS",
+      "tier": 3,
+      "manaCost": 3,
+      "target": "self"
+    },
+    {
+      "id": "s-heal-major-wounds",
+      "name": "HEAL MAJOR WOUNDS",
+      "tier": 4,
+      "manaCost": 5,
+      "target": "self"
+    },
+    {
+      "id": "s-neutralize-poison",
+      "name": "NEUTRALIZE POISON",
+      "tier": 2,
+      "manaCost": 3,
+      "target": "self"
+    },
+    {
+      "id": "s-healing",
+      "name": "HEALING",
+      "tier": 5,
+      "manaCost": 6,
+      "target": "self"
+    },
+    {
+      "id": "s-phase-door",
+      "name": "PHASE DOOR",
+      "tier": 1,
+      "manaCost": 1
+    },
+    {
+      "id": "s-levitation",
+      "name": "LEVITATION",
+      "tier": 2,
+      "manaCost": 2
+    },
+    {
+      "id": "s-rune-of-return",
+      "name": "RUNE OF RETURN",
+      "tier": 3,
+      "manaCost": 3
+    },
+    {
+      "id": "s-teleport",
+      "name": "TELEPORT",
+      "tier": 3,
+      "manaCost": 3
+    },
+    {
+      "id": "s-detect-objects",
+      "name": "DETECT OBJECTS",
+      "tier": 1,
+      "manaCost": 1
+    },
+    {
+      "id": "s-detect-monsters",
+      "name": "DETECT MONSTERS",
+      "tier": 2,
+      "manaCost": 2
+    },
+    {
+      "id": "s-detect-traps",
+      "name": "DETECT TRAPS",
+      "tier": 2,
+      "manaCost": 2
+    },
+    {
+      "id": "s-identify",
+      "name": "IDENTIFY",
+      "tier": 2,
+      "manaCost": 2
+    },
+    {
+      "id": "s-clairvoyance",
+      "name": "CLAIRVOYANCE",
+      "tier": 2,
+      "manaCost": 3
+    },
+    {
+      "id": "s-create-traps",
+      "name": "CREATE TRAPS"
+    },
+    {
+      "id": "s-haste-monster",
+      "name": "HASTE MONSTER"
+    },
+    {
+      "id": "s-clone-monster",
+      "name": "CLONE MONSTER"
+    },
+    {
+      "id": "s-teleport-away",
+      "name": "TELEPORT AWAY"
+    },
+    {
+      "id": "s-light",
+      "name": "LIGHT",
+      "tier": 1,
+      "manaCost": 1
+    },
+    {
+      "id": "s-remove-curse",
+      "name": "REMOVE CURSE",
+      "tier": 3,
+      "manaCost": 3
+    }
+  ],
+  "gaps": [
+    {
+      "field": "effect",
+      "reason": "effect formulas are runtime code, not static data (EXTRACTION-GAPS.md #1)"
+    },
+    {
+      "field": "target",
+      "reason": "targeting for movement spells needs engine semantics",
+      "records": [
+        "s-phase-door"
+      ]
+    },
+    {
+      "field": "target",
+      "reason": "targeting for movement spells needs engine semantics",
+      "records": [
+        "s-levitation"
+      ]
+    },
+    {
+      "field": "target",
+      "reason": "targeting for movement spells needs engine semantics",
+      "records": [
+        "s-rune-of-return"
+      ]
+    },
+    {
+      "field": "target",
+      "reason": "targeting for movement spells needs engine semantics",
+      "records": [
+        "s-teleport"
+      ]
+    },
+    {
+      "field": "target",
+      "reason": "targeting for divination spells needs engine semantics",
+      "records": [
+        "s-detect-objects"
+      ]
+    },
+    {
+      "field": "target",
+      "reason": "targeting for divination spells needs engine semantics",
+      "records": [
+        "s-detect-monsters"
+      ]
+    },
+    {
+      "field": "target",
+      "reason": "targeting for divination spells needs engine semantics",
+      "records": [
+        "s-detect-traps"
+      ]
+    },
+    {
+      "field": "target",
+      "reason": "targeting for divination spells needs engine semantics",
+      "records": [
+        "s-identify"
+      ]
+    },
+    {
+      "field": "target",
+      "reason": "targeting for divination spells needs engine semantics",
+      "records": [
+        "s-clairvoyance"
+      ]
+    },
+    {
+      "field": "target",
+      "reason": "targeting for non-character spells needs engine semantics",
+      "records": [
+        "s-create-traps"
+      ]
+    },
+    {
+      "field": "tier",
+      "reason": "non-character spell: Spell Level NA in manual",
+      "records": [
+        "s-create-traps"
+      ]
+    },
+    {
+      "field": "manaCost",
+      "reason": "non-character spell: Base Mana NA in manual",
+      "records": [
+        "s-create-traps"
+      ]
+    },
+    {
+      "field": "target",
+      "reason": "targeting for non-character spells needs engine semantics",
+      "records": [
+        "s-haste-monster"
+      ]
+    },
+    {
+      "field": "tier",
+      "reason": "non-character spell: Spell Level NA in manual",
+      "records": [
+        "s-haste-monster"
+      ]
+    },
+    {
+      "field": "manaCost",
+      "reason": "non-character spell: Base Mana NA in manual",
+      "records": [
+        "s-haste-monster"
+      ]
+    },
+    {
+      "field": "target",
+      "reason": "targeting for non-character spells needs engine semantics",
+      "records": [
+        "s-clone-monster"
+      ]
+    },
+    {
+      "field": "tier",
+      "reason": "non-character spell: Spell Level NA in manual",
+      "records": [
+        "s-clone-monster"
+      ]
+    },
+    {
+      "field": "manaCost",
+      "reason": "non-character spell: Base Mana NA in manual",
+      "records": [
+        "s-clone-monster"
+      ]
+    },
+    {
+      "field": "target",
+      "reason": "targeting for non-character spells needs engine semantics",
+      "records": [
+        "s-teleport-away"
+      ]
+    },
+    {
+      "field": "tier",
+      "reason": "non-character spell: Spell Level NA in manual",
+      "records": [
+        "s-teleport-away"
+      ]
+    },
+    {
+      "field": "manaCost",
+      "reason": "non-character spell: Base Mana NA in manual",
+      "records": [
+        "s-teleport-away"
+      ]
+    },
+    {
+      "field": "target",
+      "reason": "targeting for miscellaneous spells needs engine semantics",
+      "records": [
+        "s-light"
+      ]
+    },
+    {
+      "field": "target",
+      "reason": "targeting for miscellaneous spells needs engine semantics",
+      "records": [
+        "s-remove-curse"
+      ]
+    }
+  ],
+  "expectedCount": 34
+}

@@ -1,0 +1,374 @@
+{
+  "version": 1,
+  "source": {
+    "exe": "CASTLE1.EXE",
+    "sha256": "e90d202717882449196cc087bc2231d2c94a17a553c4b5dfa4c91ed4c718c3b0",
+    "tableOffset": 134960,
+    "decoderVersion": "roster/1"
+  },
+  "records": [
+    {
+      "id": "m364",
+      "name": "Kobold"
+    },
+    {
+      "id": "m365",
+      "name": "Orc"
+    },
+    {
+      "id": "m366",
+      "name": "Goblin"
+    },
+    {
+      "id": "m367",
+      "name": "Hobgoblin"
+    },
+    {
+      "id": "m368",
+      "name": "Large Snake"
+    },
+    {
+      "id": "m369",
+      "name": "Giant Rat"
+    },
+    {
+      "id": "m492",
+      "name": "Goblin Fighter"
+    },
+    {
+      "id": "m493",
+      "name": "Skeleton"
+    },
+    {
+      "id": "m494",
+      "name": "Giant Red Ant"
+    },
+    {
+      "id": "m495",
+      "name": "Ant"
+    },
+    {
+      "id": "m496",
+      "name": "Dog"
+    },
+    {
+      "id": "m497",
+      "name": "Wild Dog"
+    },
+    {
+      "id": "m502",
+      "name": "Giant Trapdoor Spider"
+    },
+    {
+      "id": "m503",
+      "name": "Carrion Creeper"
+    },
+    {
+      "id": "m504",
+      "name": "Huge Ogre"
+    },
+    {
+      "id": "m508",
+      "name": "Walking Corpse"
+    },
+    {
+      "id": "m509",
+      "name": "Huge Lizard"
+    },
+    {
+      "id": "m532",
+      "name": "Ancient Red Dragon"
+    },
+    {
+      "id": "m533",
+      "name": "Ancient Blue Dragon"
+    },
+    {
+      "id": "m566",
+      "name": "Giant Bat"
+    },
+    {
+      "id": "m567",
+      "name": "Eerie Ghost"
+    },
+    {
+      "id": "m568",
+      "name": "Giant Scorpion"
+    },
+    {
+      "id": "m569",
+      "name": "Slime"
+    },
+    {
+      "id": "m570",
+      "name": "Gruesome Troll"
+    },
+    {
+      "id": "m604",
+      "name": "Young Red Dragon"
+    },
+    {
+      "id": "m605",
+      "name": "Young Adult Red Dragon"
+    },
+    {
+      "id": "m606",
+      "name": "Adult Red Dragon"
+    },
+    {
+      "id": "m607",
+      "name": "Old Red Dragon"
+    },
+    {
+      "id": "m608",
+      "name": "Very Old Red Dragon"
+    },
+    {
+      "id": "m609",
+      "name": "Young Blue Dragon"
+    },
+    {
+      "id": "m610",
+      "name": "Young Adult Blue Dragon"
+    },
+    {
+      "id": "m611",
+      "name": "Adult Blue Dragon"
+    },
+    {
+      "id": "m612",
+      "name": "Old Blue Dragon"
+    },
+    {
+      "id": "m613",
+      "name": "Very Old Blue Dragon"
+    },
+    {
+      "id": "m640",
+      "name": "Fire Giant"
+    },
+    {
+      "id": "m641",
+      "name": "Frost Giant"
+    },
+    {
+      "id": "m642",
+      "name": "Hill Giant"
+    },
+    {
+      "id": "m643",
+      "name": "Stone Giant"
+    },
+    {
+      "id": "m661",
+      "name": "Young White Dragon"
+    },
+    {
+      "id": "m662",
+      "name": "Young Adult White Dragon"
+    },
+    {
+      "id": "m663",
+      "name": "Adult White Dragon"
+    },
+    {
+      "id": "m664",
+      "name": "Old White Dragon"
+    },
+    {
+      "id": "m665",
+      "name": "Very Old White Dragon"
+    },
+    {
+      "id": "m666",
+      "name": "Ancient White Dragon"
+    },
+    {
+      "id": "m667",
+      "name": "Young Green Dragon"
+    },
+    {
+      "id": "m668",
+      "name": "Young Adult Green Dragon"
+    },
+    {
+      "id": "m669",
+      "name": "Adult Green Dragon"
+    },
+    {
+      "id": "m670",
+      "name": "Old Green Dragon"
+    },
+    {
+      "id": "m671",
+      "name": "Very Old Green Dragon"
+    },
+    {
+      "id": "m672",
+      "name": "Ancient Green Dragon"
+    },
+    {
+      "id": "m679",
+      "name": "Manticore"
+    },
+    {
+      "id": "m685",
+      "name": "Gelatinous Glob"
+    },
+    {
+      "id": "m686",
+      "name": "Wizard"
+    },
+    {
+      "id": "m717",
+      "name": "Spectre"
+    },
+    {
+      "id": "m718",
+      "name": "Vampire"
+    },
+    {
+      "id": "m719",
+      "name": "Smirking Sneak Thief"
+    },
+    {
+      "id": "m720",
+      "name": "Viper"
+    },
+    {
+      "id": "m871",
+      "name": "Hrungnir"
+    },
+    {
+      "id": "m872",
+      "name": "Hrungnir, The Hill Giant Lord"
+    },
+    {
+      "id": "m939",
+      "name": "Gray Wolf"
+    },
+    {
+      "id": "m940",
+      "name": "White Wolf"
+    },
+    {
+      "id": "m941",
+      "name": "Brown Bear"
+    },
+    {
+      "id": "m942",
+      "name": "Cave Bear"
+    },
+    {
+      "id": "m943",
+      "name": "Magma Elemental"
+    },
+    {
+      "id": "m944",
+      "name": "Ice Elemental"
+    },
+    {
+      "id": "m945",
+      "name": "Dust Elemental"
+    },
+    {
+      "id": "m946",
+      "name": "Bandit"
+    },
+    {
+      "id": "m947",
+      "name": "Evil Warrior"
+    },
+    {
+      "id": "m948",
+      "name": "Necromancer"
+    },
+    {
+      "id": "m949",
+      "name": "Tunnel Wight"
+    },
+    {
+      "id": "m950",
+      "name": "Barrow Wight"
+    },
+    {
+      "id": "m951",
+      "name": "Castle Wight"
+    },
+    {
+      "id": "m952",
+      "name": "Pale Wraith"
+    },
+    {
+      "id": "m953",
+      "name": "Dark Wraith"
+    },
+    {
+      "id": "m954",
+      "name": "Abyss Wraith"
+    },
+    {
+      "id": "m955",
+      "name": "Animated Bronze Statue"
+    },
+    {
+      "id": "m956",
+      "name": "Animated Iron Statue"
+    },
+    {
+      "id": "m957",
+      "name": "Animated Marble Statue"
+    },
+    {
+      "id": "m958",
+      "name": "Animated Wooden Statue"
+    },
+    {
+      "id": "m959",
+      "name": "Rat-Man"
+    },
+    {
+      "id": "m960",
+      "name": "Wolf-Man"
+    },
+    {
+      "id": "m961",
+      "name": "Bear-Man"
+    },
+    {
+      "id": "m962",
+      "name": "Bull-Man"
+    },
+    {
+      "id": "m963",
+      "name": "Berserker"
+    },
+    {
+      "id": "m965",
+      "name": "Shadow"
+    }
+  ],
+  "gaps": [
+    {
+      "field": "hp",
+      "reason": "no static stat table exists in the EXE (EXTRACTION-GAPS.md #1)"
+    },
+    {
+      "field": "ac",
+      "reason": "no static stat table exists in the EXE (EXTRACTION-GAPS.md #1)"
+    },
+    {
+      "field": "damage",
+      "reason": "no static stat table exists in the EXE (EXTRACTION-GAPS.md #1)"
+    },
+    {
+      "field": "speed",
+      "reason": "no static stat table exists in the EXE (EXTRACTION-GAPS.md #1)"
+    },
+    {
+      "field": "xp",
+      "reason": "no static stat table exists in the EXE (EXTRACTION-GAPS.md #1)"
+    }
+  ],
+  "expectedCount": 85
+}

@@ -5,6 +5,8 @@
 An independent, turn-based browser RPG loosely inspired by Castle of the Winds, the Windows game by Rick Saada.
 Play with a keyboard, mouse, or touch screen. Both campaigns are playable.
 
+Read [Changes from the original game](docs/DEVIATIONS-FROM-ORIGINAL.md) for additions, approximations, and known gaps.
+
 This version uses newly written TypeScript code and new pixel art drawn in code.
 It does not use original game code or artwork. You do not need the original game files to build or play.
 The story, names, messages, maps, and game data still include material adapted or extracted from the original game.
@@ -133,7 +135,7 @@ Castle of the Winds and the original game content are credited to Rick Saada.
 This repository does not claim ownership of that content or imply the original author's endorsement.
 No blanket public-domain or open-source license claim applies to all included material.
 
-The public repository contains the application, game data, tests, build configuration, and this README.
+The public repository contains the application, game data, tests, build configuration, this README, and the deviations record.
 It excludes original binaries, extracted artwork, internal research, plans, review files, and private repository history.
 
 GitHub Actions runs tests and builds the game before publishing `main` to GitHub Pages.

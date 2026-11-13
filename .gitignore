@@ -1,7 +1,8 @@
 node_modules/
 dist/
 coverage/
-docs/
+docs/*
+!docs/DEVIATIONS-FROM-ORIGINAL.md
 plans/
 reviews/
 assets/
